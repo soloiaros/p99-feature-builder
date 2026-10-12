@@ -81,3 +81,13 @@ export const FEATURE_DEFINITIONS: FeatureDefinition[] = [
     edgeCases: ['Duplicate completion, retroactive activity correction and revoked awards.', 'Rule migration changes thresholds for existing users.', 'Offline action reaches two milestones at once.', 'Large points totals and translation expansion.'],
     acceptance: ['Replaying an activity event never awards points twice.', 'Each award can be traced to a qualifying event.', 'Reduced motion shows a static acknowledgement.', 'The product remains fully usable with celebrations disabled.'],
   },
+  {
+    id: 'insights', name: 'Useful insights', description: 'Explain patterns without pretending correlation is causation.',
+    keywords: ['insight', 'analytic', 'report', 'trend', 'statistic', 'chart', 'data', 'pattern'],
+    goal: 'Help a person notice a reliable pattern and choose a small next action.',
+    entities: ['Measurement: id, userId, metric, value, unit, recordedAt, provenance', 'Insight: id, userId, ruleVersion, intervalStart, intervalEnd, sampleSize, statement, limitation', 'InsightDismissal: userId, insightId, dismissedAt'],
+    flow: ['Overview shows the current interval and data freshness.', 'An insight card states the pattern, period and number of observations.', 'Details show the underlying points and an accessible explanation.', 'Person can change the period, correct data, dismiss the insight or take a suggested action.'],
+    rules: ['Use deterministic aggregate calculations before adding model-written interpretation.', 'Require a documented minimum sample size and disclose missing days.', 'Compare like-for-like periods and distinguish correlation from a causal effect.', 'Do not make medical or financial diagnoses from general activity data.'],
+    edgeCases: ['No data, too few samples, outliers and changes in measurement units.', 'Missing days versus true zero values.', 'Late syncing revises a previously shown insight.', 'User deletes an observation that supported a cached insight.'],
+    acceptance: ['Every displayed number can be reproduced from its source observations.', 'Sparse data produces an insufficient-data state.', 'Deleting source data invalidates affected cached insights.', 'Charts and written summaries agree for the same interval.'],
+  },
