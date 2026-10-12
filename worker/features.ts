@@ -31,3 +31,13 @@ export const FEATURE_DEFINITIONS: FeatureDefinition[] = [
     edgeCases: ['Signed out user, revoked account, empty dataset and stale snapshot.', 'Deep link target was deleted or belongs to another account.', 'Offline action retries, app upgrades and old snapshot schema versions.', 'Lock screen privacy hides sensitive values by default.'],
     acceptance: ['Widget renders meaningful cached content with no network.', 'Every tap opens the correct screen or a safe empty state.', 'Account switch removes snapshots from the previous user.', 'Small and medium layouts fit large text and display a stale indicator after expiry.'],
   },
+  {
+    id: 'onboarding', name: 'Personalized onboarding', description: 'Turn a few useful answers into a better first session.',
+    keywords: ['onboarding', 'quiz', 'assessment', 'beginner', 'welcome', 'goal', 'personalized plan'],
+    goal: 'Collect only the answers that change the first useful experience, then deliver value immediately.',
+    entities: ['OnboardingSession: id, userId?, version, currentStep, answers, startedAt, completedAt?', 'OnboardingQuestion: id, version, type, allowedAnswers, required, branchingRule', 'InitialPlan: userId, preferencesVersion, recommendedItems, explanation'],
+    flow: ['Welcome explains the outcome and approximate effort.', 'Ask at most three essential questions, one per screen, with progress and back navigation.', 'Show an editable preview of the resulting setup and why it was chosen.', 'Confirm, persist the session once, and open the first useful action.'],
+    rules: ['Every question must map to an actual rule in the resulting experience; remove questions without consequences.', 'Allow skipping optional questions and resume a partially completed session.', 'Use explicit bounded options; validate free text separately and do not infer sensitive traits.', 'Persist answers on each step; completion and plan creation form one idempotent operation.'],
+    edgeCases: ['App killed between steps, browser refresh, returning user and account switch.', 'No recommendation fits the answers; offer a neutral editable starting point.', 'Backtracking changes a branch; clear answers that no longer apply.', 'Screen reader reading order, keyboard navigation and text expansion.'],
+    acceptance: ['A skipped optional step never blocks reaching the first useful action.', 'Restarting the app resumes the saved step and answers.', 'Changing an answer updates the preview deterministically.', 'Submitting twice creates exactly one initial plan.'],
+  },
