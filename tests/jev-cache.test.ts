@@ -38,3 +38,23 @@ describe('successful Jev decision caching', () => {
     expect((await decide({ JEV_API_KEY: 'key' }, 'state', questions, fetcher)).cached).toBe(true);
     expect(fetcher).toHaveBeenCalledTimes(3);
   });
+  it('persists only scores under an opaque key and recovers after an isolate restart', async () => {
+    const stored = new Map<string, Response>();
+    const cache = {
+      match: vi.fn(async (key: Request) => stored.get(key.url)?.clone()),
+      put: vi.fn(async (key: Request, response: Response) => { stored.set(key.url, response.clone()); }),
+    };
+    vi.stubGlobal('caches', { default: cache });
+    const fetcher = vi.fn(async () => success()) as unknown as typeof fetch;
+    const env = { JEV_API_KEY: 'never-store-this-secret' };
+    await (await import('../worker/jev')).decide(env, 'private-project-description', questions, fetcher);
+    const [url, response] = [...stored.entries()][0];
+    const body = await response.clone().text();
+    expect(url).toMatch(/\/v1\/[a-f0-9]{64}$/);
+    expect(`${url}${body}`).not.toMatch(/never-store-this-secret|private-project-description|Does this fit/);
+    expect(response.headers.get('cache-control')).toBe('max-age=21600');
+    vi.resetModules();
+    const replay = await (await import('../worker/jev')).decide(env, 'private-project-description', questions, fetcher);
+    expect(replay.cached).toBe(true);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
