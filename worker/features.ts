@@ -91,3 +91,13 @@ export const FEATURE_DEFINITIONS: FeatureDefinition[] = [
     edgeCases: ['No data, too few samples, outliers and changes in measurement units.', 'Missing days versus true zero values.', 'Late syncing revises a previously shown insight.', 'User deletes an observation that supported a cached insight.'],
     acceptance: ['Every displayed number can be reproduced from its source observations.', 'Sparse data produces an insufficient-data state.', 'Deleting source data invalidates affected cached insights.', 'Charts and written summaries agree for the same interval.'],
   },
+  {
+    id: 'focus', name: 'Focused sessions', description: 'A calm start, a resilient timer, and a useful finish.',
+    keywords: ['focus', 'timer', 'pomodoro', 'concentrat', 'productivity', 'meditat', 'session'],
+    goal: 'Help someone commit to one bounded activity and return gently after interruption.',
+    entities: ['FocusSession: id, userId, activityId?, durationSeconds, startedAt, endsAt, state, pausedRemainingSeconds?', 'SessionEvent: id, sessionId, type, occurredAt', 'SessionSummary: sessionId, completedSeconds, outcome, note?'],
+    flow: ['Choose a task and an editable duration, then start with one clear action.', 'The active screen shows remaining time, task and pause/finish controls.', 'Leaving and returning restores accurate remaining time.', 'Finish shows completed effort and offers a break or another session.'],
+    rules: ['Derive remaining time from an absolute end timestamp instead of decrementing a background interval.', 'Persist state transitions and make start/pause/resume/finish idempotent.', 'Allow an early finish without shame or fabricated completed time.', 'Treat notifications as optional; completion must work without permission.'],
+    edgeCases: ['App suspended, closed or device restarted during a session.', 'System clock jumps, pause across midnight and two tabs operating the same session.', 'Notification denied and sound disabled.', 'User switches account with an active session.'],
+    acceptance: ['After a background pause, the countdown matches the stored end time.', 'Pause and resume preserve remaining duration.', 'Finishing twice creates one summary.', 'Keyboard and screen readers can operate every timer control.'],
+  },
