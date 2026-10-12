@@ -70,3 +70,8 @@ const evidenceLines = new Map(apps.map((app) => {
   }));
   return [app.trackId, lines];
 }));
+function featureEvidenceStrength(id: string, text: string): number {
+  if (id !== 'streaks') return 0;
+  if (/consecutive days|days in a row/i.test(text)) return 30;
+  return /\b(?:current|best|longest|daily|build|keep|maintain|extend|break|repair)\b.{0,35}\bstreaks?\b|\bstreak\s+(?:count|length|repair|freeze)\b/i.test(text) ? 12 : 0;
+}
