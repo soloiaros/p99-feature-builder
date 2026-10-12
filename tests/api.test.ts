@@ -124,3 +124,16 @@ describe('Jev contract and fallback', () => {
     expect(parseNoulAnswers({ answers: { a: { noul: 0.7 } } }, ['a', 'b'])).toBeNull();
     for (const bad of ['0.9', 1.1, -1, null, NaN]) expect(parseNoulAnswers({ answers: { a: { noul: bad } } }, ['a'])).toBeNull();
   });
+  it('routes OpenRouter credentials correctly and never exposes them', async () => {
+    expect(providerInfo({ JEV_API_KEY: 'sk-or-test', JEV_BASE_URL: 'https://api.typesafe.ai/v1' }).endpoint).toBe('https://openrouter.ai/api/v1/systemone');
+    const fetcher = vi.fn(async (_url: unknown, init?: RequestInit) => {
+      expect(init?.redirect).toBe('manual'); // Workerd does not implement redirect: error.
+      const body = JSON.parse(String(init?.body));
+      expect(body.model).toBe('jev-latest');
+      expect(body.questions.a.type).toBe('noul');
+      return new Response(JSON.stringify({ answers: { a: { noul: 0.9 } } }));
+    }) as unknown as typeof fetch;
+    const decision = await decide({ JEV_API_KEY: 'secret-value' }, 'a record', { a: { type: 'noul', instructions: 'Does it fit?' } }, fetcher);
+    expect(decision.scores?.a).toBe(0.9);
+    expect(JSON.stringify(decision)).not.toContain('secret-value');
+  });
