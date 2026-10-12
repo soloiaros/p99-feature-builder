@@ -73,3 +73,16 @@ export function validatePublicUrl(input: string): URL {
   url.hash = '';
   return url;
 }
+
+export function isPublicAddress(address: string): boolean {
+  if (address.includes(':')) {
+    // Only globally routable IPv6 2000::/3; reject embedded IPv4 and transition networks.
+    const first = parseInt(address.split(':')[0], 16);
+    if (!Number.isFinite(first) || first < 0x2000 || first > 0x3fff || address.includes('.') || /^2001:(?:0:|0?db8:|0?10:|0?20:)/i.test(address) || /^2002:/i.test(address)) return false;
+    return /^[0-9a-f:]+$/i.test(address);
+  }
+  const chunks = address.split('.');
+  if (chunks.length !== 4 || chunks.some((part) => !/^\d{1,3}$/.test(part) || Number(part) > 255)) return false;
+  const [a, b, c] = chunks.map(Number);
+  return !(a === 0 || a === 10 || a === 127 || a >= 224 || (a === 100 && b >= 64 && b <= 127) || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && (b === 168 || b === 0 || (b === 88 && c === 99) || (b === 2))) || (a === 198 && (b === 18 || b === 19 || (b === 51 && c === 100))) || (a === 203 && b === 0 && c === 113));
+}
