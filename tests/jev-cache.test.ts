@@ -17,3 +17,14 @@ describe('successful Jev decision caching', () => {
     expect(second.reason).toBeNull();
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
+  it('isolates full state, questions, model, endpoint and credential', async () => {
+    const { decide } = await import('../worker/jev');
+    const fetcher = vi.fn(async () => success()) as unknown as typeof fetch;
+    await decide({ JEV_API_KEY: 'key-a' }, 'state one', questions, fetcher);
+    await decide({ JEV_API_KEY: 'key-a' }, 'state two', questions, fetcher);
+    await decide({ JEV_API_KEY: 'key-a' }, 'state one', { a: { type: 'noul', instructions: 'Different question' } }, fetcher);
+    await decide({ JEV_API_KEY: 'key-a', JEV_MODEL: 'another-model' }, 'state one', questions, fetcher);
+    await decide({ JEV_API_KEY: 'key-a', JEV_BASE_URL: 'https://openrouter.ai/api/v1' }, 'state one', questions, fetcher);
+    await decide({ JEV_API_KEY: 'key-b' }, 'state one', questions, fetcher);
+    expect(fetcher).toHaveBeenCalledTimes(6);
+  });
