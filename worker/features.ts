@@ -141,3 +141,13 @@ export const FEATURE_DEFINITIONS: FeatureDefinition[] = [
     edgeCases: ['Empty query, typo, punctuation, multiple scripts and long input.', 'Rapid typing returns responses out of order.', 'Item deleted between search and opening.', 'All results filtered out or network failure while prior results exist.'],
     acceptance: ['A stale response never replaces results for a newer query.', 'Filters survive opening a result and going back.', 'Unauthorized items never appear in results or counts.', 'Keyboard focus follows a consistent order and loading is announced.'],
   },
+  {
+    id: 'sync', name: 'Seamless device sync', description: 'A consistent experience when people move between devices.',
+    keywords: ['sync', 'icloud', 'cross-device', 'across devices', 'backup', 'cloud'],
+    goal: 'Keep user-owned state consistent across devices with visible, recoverable conflicts.',
+    entities: ['SyncRecord: id, ownerId, version, updatedAt, deletedAt?, data', 'Mutation: id, deviceId, recordId, baseVersion, operation, payload', 'DeviceCursor: deviceId, userId, lastRevision, lastSeenAt'],
+    flow: ['Signing in loads a server snapshot and merges unsynced local drafts.', 'Edits are applied optimistically and queued with a stable mutation ID.', 'The server validates ownership and base version, then returns a revision.', 'Other devices pull changes after their cursor and reconcile conflicts.'],
+    rules: ['Use monotonic server revisions rather than device clocks to order updates.', 'Retain tombstones long enough for offline devices to observe deletions.', 'Reject writes for stale versions unless a documented merge is possible.', 'Expose sync state without requiring the person to understand transport details.'],
+    edgeCases: ['Two devices edit the same field, deletion races with an update.', 'Long-offline device returns after tombstone expiry.', 'Token expires in the middle of a batch.', 'User signs into a different account with local drafts.'],
+    acceptance: ['Duplicate mutation IDs are idempotent.', 'Concurrent edits never silently lose user text.', 'Deletion propagates to offline devices on reconnection.', 'Expired sessions preserve pending work but block unauthorized writes.'],
+  },
