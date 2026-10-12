@@ -17,3 +17,9 @@ async function api<T>(path: string, body?: unknown, signal?: AbortSignal): Promi
   if (!response.ok) throw new Error(typeof data.error === 'string' ? data.error : data.error?.message || data.message || 'The request failed. Try again.');
   return data;
 }
+function loadSaved(): SavedProject[] {
+  try {
+    const raw: unknown = JSON.parse(localStorage.getItem('p99-projects') || localStorage.getItem('borrow-projects') || '[]');
+    return Array.isArray(raw) ? raw.filter(item => item?.project?.name && Array.isArray(item?.matches)).slice(0, 12) : [];
+  } catch { return []; }
+}
