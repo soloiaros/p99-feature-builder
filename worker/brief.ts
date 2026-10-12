@@ -78,3 +78,38 @@ ${titles.map((heading, i) => `<g transform="translate(${48 + i * 360},104)">${te
 ${text('Implementation guardrail', 48, 610, 12, '#333', 600)}${multiline(definition.rules[0], 48, 633, 143, 2)}
 </g></svg>`;
 }
+
+export function generateFlow(feature: Feature): string {
+  const definition = featureDefinition(feature);
+  // Mermaid entity escapes keep arbitrary feature labels inside quoted node text.
+  const escape = (value: string) => value.replace(/[\u0000-\u001f]/g, ' ').replace(/[#"<>[\]{}|`]/g, (char) => `#${char.charCodeAt(0)};`);
+  const checks: Record<string, [string, string]> = {
+    streaks: ['Already completed on this local date?', 'Reuse the saved completion; do not increment twice'],
+    widgets: ['Snapshot current and owned by this account?', 'Show a stale or signed-out view; refresh safely'],
+    onboarding: ['Required answers valid for this branch?', 'Preserve answers and explain the missing choice'],
+    reminders: ['Permission granted and schedule still relevant?', 'Keep reminder settings; offer permission help or pause'],
+    progress: ['Valid unit, target, and unique progress event?', 'Explain the mismatch; retain the original entry'],
+    social: ['Membership and sharing consent still valid?', 'Keep activity private; allow changing sharing choices'],
+    gamification: ['Milestone earned and not previously granted?', 'Show the existing achievement or the next requirement'],
+    insights: ['Enough valid source data for this comparison?', 'Show an honest empty or insufficient-data state'],
+    focus: ['Session still active after restoring its timestamp?', 'Restore elapsed time or show the completed session'],
+    logging: ['Entry valid and owned by this person?', 'Keep the draft and explain the field to correct'],
+    personalization: ['An available item fits these preferences?', 'Offer an editable neutral starting point'],
+    offline: ['Connection available and record versions compatible?', 'Keep the local draft; queue retry or ask about conflict'],
+    search: ['Authorized results match the current query?', 'Show no results and preserve filters for refinement'],
+    sync: ['Authenticated and no unresolved version conflict?', 'Keep both versions; explain the conflict before merging'],
+    subscriptions: ['Store transaction verified on the trusted server?', 'Keep existing access; show pending, canceled, or failed state'],
+  };
+  const [check, recovery] = checks[feature.id] ?? ['Input valid and action authorized?', 'Preserve the input and explain how to recover'];
+  const lines = ['flowchart TD', `  A["${escape(`Open ${feature.name}`)}"] --> S0["${escape(definition.flow[0])}"]`];
+  definition.flow.slice(1).forEach((step, i) => {
+    if (i === 0) {
+      lines.push(`  S0 --> S1["${escape(step)}"]`, `  S1 --> G{"${escape(check)}"}`, `  G -->|Needs attention| R["${escape(recovery)}"]`, '  R --> S1');
+    } else lines.push(`  ${i === 1 ? 'G -->|Ready|' : `S${i} -->`} S${i + 1}["${escape(step)}"]`);
+  });
+  lines.push(`  S${definition.flow.length - 1} --> Z["${escape('Keep the outcome accessible; allow edit, undo, or return as appropriate')}"]`);
+  definition.rules.forEach((rule) => lines.push(`  %% Implementation rule: ${escape(rule)}`));
+  definition.edgeCases.forEach((edge) => lines.push(`  %% Recovery case: ${escape(edge)}`));
+  lines.push('  classDef default fill:#ffffff,stroke:#cecece,color:#303030,stroke-width:1px;', '  classDef decision fill:#f3f3f3,stroke:#909090,color:#303030;', '  class G decision;', '  linkStyle default stroke:#9a9a9a,stroke-width:1px;');
+  return `${lines.join('\n')}\n`;
+}
