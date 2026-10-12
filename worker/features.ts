@@ -151,3 +151,13 @@ export const FEATURE_DEFINITIONS: FeatureDefinition[] = [
     edgeCases: ['Two devices edit the same field, deletion races with an update.', 'Long-offline device returns after tombstone expiry.', 'Token expires in the middle of a batch.', 'User signs into a different account with local drafts.'],
     acceptance: ['Duplicate mutation IDs are idempotent.', 'Concurrent edits never silently lose user text.', 'Deletion propagates to offline devices on reconnection.', 'Expired sessions preserve pending work but block unauthorized writes.'],
   },
+  {
+    id: 'subscriptions', name: 'Clear premium upgrades', description: 'Explain paid value and make entitlements reliable.',
+    keywords: ['subscription', 'premium', 'membership', 'trial', 'paywall', 'purchase'],
+    goal: 'Present a paid capability honestly and keep access consistent with verified entitlement state.',
+    entities: ['Product: providerProductId, entitlementKey, localizedPrice, period, trialTerms', 'Entitlement: userId, key, provider, expiresAt?, state, lastVerifiedAt', 'PurchaseEvent: providerEventId, userId, productId, type, occurredAt'],
+    flow: ['A person encounters a relevant premium capability after seeing its value.', 'The upgrade screen states the exact price, billing period and renewal terms.', 'Purchase goes through the platform’s supported billing flow.', 'The app verifies the transaction and provides restore, manage and cancellation guidance.'],
+    rules: ['Use official store pricing and billing APIs for the selected platform; never hard-code localized prices.', 'Verify transaction receipts or signed events on a trusted server before granting access.', 'Deduplicate provider events and handle them out of order.', 'Keep restore purchases available and explain what remains usable after expiry.'],
+    edgeCases: ['Purchase pending, cancellation, billing retry, grace period, refund and revocation.', 'Already-subscribed account signs in on a new device.', 'Receipt arrives after an app restart or webhook retry.', 'Offline access uses a bounded grace policy instead of permanent cached access.'],
+    acceptance: ['A client-modified flag cannot grant premium access.', 'Replayed provider events do not extend access twice.', 'Restoring purchases recovers valid entitlements.', 'Price, renewal interval and trial end behavior are visible before purchase.'],
+  },
