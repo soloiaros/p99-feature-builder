@@ -164,3 +164,7 @@ describe('landing-page safety', () => {
     expect(isPublicAddress('8.8.8.8')).toBe(true);
     expect(isPublicAddress('2606:4700:4700::1111')).toBe(true);
   });
+  it('rejects a hostname if any DNS record points at a private address', async () => {
+    const fetcher = (async (url: unknown) => new Response(JSON.stringify({ Status: 0, Answer: [{ type: String(url).includes('AAAA') ? 28 : 1, data: String(url).includes('AAAA') ? 'fe80::1' : '8.8.8.8' }] }))) as typeof fetch;
+    await expect(assertPublicDns('public.example.com', fetcher)).rejects.toThrow('public addresses');
+  });
