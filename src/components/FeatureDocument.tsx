@@ -156,3 +156,19 @@ function MarkdownDocument({ brief }: { brief: BriefResponse }) {
   }, [brief]);
   return <article className="document-markdown">{content}</article>;
 }
+
+function downloadBrief(brief: BriefResponse, name: string, kind: 'md' | 'zip') {
+  let blob: Blob;
+  if (kind === 'zip') {
+    const files: Record<string, Uint8Array> = {};
+    for (const file of brief.files) files[file.name.replace(/[^a-zA-Z0-9._-]/g, '-')] = strToU8(file.content);
+    if (!Object.keys(files).length) files['feature-brief.md'] = strToU8(brief.markdown);
+    blob = new Blob([new Uint8Array(zipSync(files))], { type: 'application/zip' });
+  } else blob = new Blob([brief.markdown], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = kind === 'md' ? filename(name) : filename(name).replace(/\.md$/, '.zip');
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
