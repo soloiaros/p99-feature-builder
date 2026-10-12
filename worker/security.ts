@@ -99,3 +99,12 @@ export async function assertPublicDns(hostname: string, fetcher: typeof fetch = 
   const ips = answers.flat();
   if (ips.length === 0 || ips.some((ip) => typeof ip !== 'string' || !isPublicAddress(ip))) throw new ApiError(422, 'That website does not resolve exclusively to public addresses.');
 }
+
+function decodeEntities(text: string): string {
+  return text.replace(/&(?:amp|lt|gt|quot|apos|nbsp);|&#(?:x[0-9a-f]+|\d+);/gi, (value) => {
+    const named: Record<string, string> = { '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&apos;': "'", '&nbsp;': ' ' };
+    if (named[value.toLowerCase()]) return named[value.toLowerCase()];
+    const n = value.toLowerCase().startsWith('&#x') ? parseInt(value.slice(3, -1), 16) : parseInt(value.slice(2, -1), 10);
+    return n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : ' ';
+  });
+}
