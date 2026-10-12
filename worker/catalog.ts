@@ -50,3 +50,4 @@ export function summarizeApp(app: CatalogApp): AppSummary {
 }
 const stopwords = new Set(['a', 'an', 'the', 'my', 'app', 'with', 'and', 'for', 'that', 'this', 'our', 'your', 'from', 'into', 'their', 'have', 'users', 'user', 'feature', 'features', 'helps', 'help', 'build', 'make', 'people', 'use', 'using', 'ios', 'web']);
 export function keywords(text: string): string[] { return [...new Set(text.toLowerCase().split(/[^a-z0-9]+/).filter((term) => term.length >= 3 && !stopwords.has(term)))].slice(0, 50); }
+export interface Candidate { app: CatalogApp; localScore: number; excerpt: string; explicit: boolean }
