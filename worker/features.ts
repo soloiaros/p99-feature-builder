@@ -131,3 +131,13 @@ export const FEATURE_DEFINITIONS: FeatureDefinition[] = [
     edgeCases: ['App killed during queue write, repeated retries and partial server success.', 'Same entity edited on two devices or deleted remotely.', 'Storage quota reached, schema migration and corrupt cache.', 'User logs out while operations remain queued.'],
     acceptance: ['An offline edit survives a process restart.', 'Replaying an operation twice changes server state once.', 'A conflict preserves both versions until resolved.', 'One account never sees another account’s cache.'],
   },
+  {
+    id: 'search', name: 'Fast search & discovery', description: 'Get people to the right item with clear, forgiving search.',
+    keywords: ['search', 'discover', 'find', 'filter', 'browse', 'library', 'catalog'],
+    goal: 'Find a relevant item quickly while keeping query behavior predictable.',
+    entities: ['SearchDocument: id, title, normalizedText, tags, visibility, updatedAt', 'SearchQuery: text, filters, sort, cursor?', 'SearchResult: itemId, matchedFields, rank, excerpt'],
+    flow: ['Search opens with useful recent items or categories.', 'Typing triggers a short debounced query with visible loading state.', 'Results show title, relevant metadata and an explanation of the match.', 'Filters remain visible and an empty state suggests a concrete correction.'],
+    rules: ['Normalize Unicode and case consistently at indexing and query time.', 'Authorize results before ranking; private items must not leak through counts or suggestions.', 'Cancel superseded requests and ignore stale responses.', 'Use bounded page sizes and stable cursor pagination.'],
+    edgeCases: ['Empty query, typo, punctuation, multiple scripts and long input.', 'Rapid typing returns responses out of order.', 'Item deleted between search and opening.', 'All results filtered out or network failure while prior results exist.'],
+    acceptance: ['A stale response never replaces results for a newer query.', 'Filters survive opening a result and going back.', 'Unauthorized items never appear in results or counts.', 'Keyboard focus follows a consistent order and loading is announced.'],
+  },
