@@ -27,3 +27,9 @@ export interface Project extends ProjectProfile {
   description: string;
   sourceUrl?: string;
 }
+
+export interface Feature {
+  id: string;
+  name: string;
+  description: string;
+}
