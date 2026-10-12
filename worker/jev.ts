@@ -64,3 +64,15 @@ async function readDecision(key: string, ids: string[]): Promise<Record<string, 
     return scores;
   } catch { return null; }
 }
+async function storeDecision(key: string, scores: Record<string, number>): Promise<void> {
+  const answers = Object.fromEntries(Object.entries(scores).map(([id, noul]) => [id, { noul }]));
+  remember(key, answers);
+  const cache = edgeCache();
+  if (!cache) return;
+  try {
+    // Store scores only: neither project text, prompts nor credentials enter the cached response.
+    await cache.put(new Request(`https://borrow-decision-cache.invalid/v1/${key}`), new Response(JSON.stringify({ answers, expiresAt: Date.now() + EDGE_TTL }), {
+      headers: { 'content-type': 'application/json', 'cache-control': `max-age=${EDGE_TTL / 1000}` },
+    }));
+  } catch { /* Cache failure must never turn a valid Jev result into fallback. */ }
+}
