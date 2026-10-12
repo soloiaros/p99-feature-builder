@@ -51,3 +51,13 @@ export const FEATURE_DEFINITIONS: FeatureDefinition[] = [
     edgeCases: ['Permission denied or later revoked; present settings help without nagging.', 'Travel, clock changes, DST missing/repeated hours.', 'Device offline, duplicate delivery and stale deep link.', 'Account logout cancels personally scoped local notifications.'],
     acceptance: ['Declining permission leaves the core feature usable.', 'Completing the target cancels its pending reminder.', 'A single scheduled occurrence produces at most one delivery.', 'Editing a reminder cancels the old schedule and installs the new one.'],
   },
+  {
+    id: 'progress', name: 'Progress tracking', description: 'Make small wins and the next milestone legible.',
+    keywords: ['progress', 'track', 'goal', 'milestone', 'learn', 'workout', 'course'],
+    goal: 'Show how far the person has moved toward an explicit goal and what action moves them forward.',
+    entities: ['Goal: id, userId, metric, targetValue, startDate, dueDate?, archivedAt?', 'ProgressEvent: id, goalId, value, unit, occurredAt, source, idempotencyKey', 'ProgressSummary: goalId, total, percentage, latestEventAt, aggregationVersion'],
+    flow: ['Person chooses a concrete target and a unit they understand.', 'The home view shows current value, target, period and next useful action.', 'Each completed action updates the total with a short explanation.', 'History reveals individual events and supports correcting mistakes.'],
+    rules: ['Keep raw events immutable where possible and aggregate server-side or from a single deterministic function.', 'Distinguish zero from unavailable data; do not render a zero-filled chart for failed loads.', 'Label units and date boundaries; never mix incompatible metrics.', 'Percentages cap visually at 100 while raw overachievement remains available.'],
+    edgeCases: ['Target of zero, target edited mid-period, negative corrections and overachievement.', 'Duplicate or late events; multiple devices editing concurrently.', 'Empty state, sparse history and dates with genuinely no events.', 'Archived goal with historical data remains readable.'],
+    acceptance: ['Displayed totals equal the sum of valid events for the chosen interval.', 'Deleting or correcting an event updates all derived summaries.', 'Loading, empty, error and success states are visually distinct.', 'Charts have a text summary with the same values.'],
+  },
