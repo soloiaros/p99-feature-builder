@@ -164,3 +164,19 @@ export const FEATURE_DEFINITIONS: FeatureDefinition[] = [
 ];
 
 export const FEATURES: Feature[] = FEATURE_DEFINITIONS.map(({ id, name, description }) => ({ id, name, description }));
+export function featureDefinition(feature: Feature): FeatureDefinition {
+  const exact = FEATURE_DEFINITIONS.find((item) => item.id === feature.id);
+  if (exact) return exact;
+  const text = `${feature.name} ${feature.description}`.toLowerCase();
+  const ranked = FEATURE_DEFINITIONS.map((item) => ({ item, score: item.keywords.filter((key) => text.includes(key)).length })).sort((a, b) => b.score - a.score);
+  if (ranked[0].score > 0) return { ...ranked[0].item, ...feature };
+  return {
+    ...feature, keywords: text.split(/[^a-z0-9]+/).filter((word) => word.length > 2),
+    goal: `Implement ${feature.name.toLowerCase()} as an explicit, user-controlled capability in the existing app.`,
+    entities: ['FeatureRecord: id, ownerId, state, version, createdAt, updatedAt', 'FeatureEvent: id, recordId, action, occurredAt, idempotencyKey'],
+    flow: ['Locate the existing screen where this capability is needed and provide a clear entry action.', 'Collect only the required input and explain what will happen.', 'Validate and persist the operation, then show its actual outcome.', 'Provide an editable history or detail view, plus undo when the action is reversible.'],
+    rules: ['Inspect the existing repository and map this feature to concrete domain entities before coding.', 'Keep user intent explicit and authorize all records by ownership.', 'Separate draft, pending, successful and failed states.', 'Do not invent behavior from a reference app; define the missing domain rules with the project owner.'],
+    edgeCases: ['Empty data, invalid input, permission denied and interrupted submission.', 'Duplicate retries, stale records and concurrent edits.', 'Offline behavior and recovery after an app restart.', 'Large text, screen readers and reduced motion.'],
+    acceptance: ['A person can complete the primary action and verify its persisted result.', 'A failed operation preserves their input and offers a safe retry.', 'Duplicate submissions do not create duplicate effects.', 'Unauthorized users cannot access or modify the record.'],
+  };
+}
