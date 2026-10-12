@@ -180,3 +180,25 @@ export function featureDefinition(feature: Feature): FeatureDefinition {
     acceptance: ['A person can complete the primary action and verify its persisted result.', 'A failed operation preserves their input and offers a safe retry.', 'Duplicate submissions do not create duplicate effects.', 'Unauthorized users cannot access or modify the record.'],
   };
 }
+
+export function lexicalFeatures(description: string): { features: Feature[]; suggested: boolean } {
+  const lower = description.toLowerCase();
+  const explicit: Record<string, RegExp> = {
+    streaks: /streak/, widgets: /widget|home screen|lock screen/, onboarding: /onboarding|quiz|assessment/,
+    reminders: /remind|notification|nudge|alerts?/, progress: /progress|milestone|goal tracking/,
+    social: /friends?|communit|social|shared|together|group/, gamification: /gamif|badge|reward|achievement|\bxp\b|\bpoints\b/,
+    insights: /insight|analytic|report|trend|statistic|chart/, focus: /focus|timer|pomodoro|concentrat|meditat/,
+    logging: /logging|journal|diary|\blog\b|mood tracking|recording/, personalization: /personali(?!zed onboarding)|recommend|tailor|adaptive|custom/,
+    offline: /offline|without internet|no internet|download/, search: /search|filter|brows|library|catalog/,
+    sync: /sync|icloud|across devices|cross-device|backup/, subscriptions: /subscription|premium|membership|paywall|purchase/,
+  };
+  const hasExplicit = FEATURE_DEFINITIONS.filter((feature) => explicit[feature.id]?.test(lower));
+  const ranked = FEATURE_DEFINITIONS.map((feature) => ({ feature, score: (explicit[feature.id]?.test(lower) ? 100 : 0) + (hasExplicit.length >= 3 ? 0 : feature.keywords.reduce((score, key) => score + (lower.includes(key) ? key.length > 7 ? 3 : 2 : 0), 0)) })).sort((a, b) => b.score - a.score);
+  const found = ranked.filter((item) => item.score > 0).slice(0, 5).map(({ feature }) => feature);
+  const suggested = found.length < 3;
+  for (const id of ['onboarding', 'progress', 'reminders']) {
+    if (found.length >= 3) break;
+    if (!found.some((item) => item.id === id)) found.push(FEATURE_DEFINITIONS.find((item) => item.id === id)!);
+  }
+  return { features: found.map(({ id, name, description: detail }) => ({ id, name, description: detail })), suggested };
+}
