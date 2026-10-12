@@ -83,3 +83,22 @@ describe('end-to-end API without a provider key', () => {
     expect(response.headers.get('retry-after')).toBe('60');
   });
 });
+
+describe('matching relevance', () => {
+  it('provides unique preload candidates covering eventual matches without an extra Jev call', async () => {
+    const fetcher = vi.fn(async (_url: unknown, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body));
+      return new Response(JSON.stringify({ answers: Object.fromEntries(Object.keys(body.questions).map((id) => [id, { type: 'noul', noul: 0.9 }])) }));
+    }) as unknown as typeof fetch;
+    const env = { JEV_API_KEY: 'candidate-preload-test-key' };
+    const analysis = await analyze({ input, profile }, env, fetcher);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(analysis.candidates?.length).toBeGreaterThan(0);
+    expect(analysis.candidates!.length).toBeLessThanOrEqual(28);
+    const ids = analysis.candidates!.map((app) => app.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(analysis.candidates!.every((app) => app.iconUrl.startsWith('https://') && app.appStoreUrl.startsWith('https://apps.apple.com/'))).toBe(true);
+    const matched = await matchFeatures(analysis.project, analysis.features, env, fetcher);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(matched.matches.every((match) => ids.includes(match.app.id))).toBe(true);
+  });
