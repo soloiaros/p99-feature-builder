@@ -52,3 +52,13 @@ describe('explicit feature selection', () => {
     expect(fetcher).not.toHaveBeenCalled();
   });
 });
+
+describe('independent feature matching', () => {
+  it('quotes streak mechanics rather than social copy mentioning the Streaks app name', () => {
+    const feature = { id: 'streaks', name: 'Daily streaks', description: 'Build a habit over consecutive days.' };
+    const streaks = shortlist(feature, project.description, 1000).find((candidate) => candidate.app.trackId === 963034692);
+    expect(streaks?.excerpt).toBe('Your goal is to build a streak of consecutive days.');
+    expect(streaks?.app.description).toContain(streaks!.excerpt);
+    const social = shortlist({ id: 'social', name: 'Social sharing', description: 'Share tasks with friends.' }, project.description, 1000).find((candidate) => candidate.app.trackId === 963034692);
+    expect(social?.excerpt).toContain('Share your tasks');
+  });
