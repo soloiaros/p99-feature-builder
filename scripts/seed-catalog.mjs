@@ -58,3 +58,73 @@ async function save(snapshot) {
   await writeFile(catalogPath, JSON.stringify(output, null, 2) + '\n');
   console.log(`Saved ${apps.length} apps and ${apps.reduce((n, app) => n + app.features.length, 0)} evidence-backed feature hints to ${catalogPath}`);
 }
+
+// Reapply enrichment without any network calls: node scripts/seed-catalog.mjs --from data/catalog.json
+const fromIndex = process.argv.indexOf('--from');
+if (fromIndex !== -1) {
+  if (!process.argv[fromIndex + 1]) throw new Error('--from requires a JSON snapshot path');
+  await save(JSON.parse(await readFile(process.argv[fromIndex + 1], 'utf8')));
+} else {
+  const capturedAt = new Date().toISOString();
+  const charts = [];
+  const failures = [];
+  const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+  async function json(url) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const response = await fetch(url, { signal: AbortSignal.timeout(30000), headers: { 'User-Agent': 'FeatureEngineCatalog/1.0' } });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
+      } catch (error) {
+        if (attempt === 2) throw error;
+        await wait(1500 * 2 ** attempt);
+      }
+    }
+  }
+  for (const [genreId, category] of genres) {
+    for (const [chart, legacy] of [['top-free', 'topfreeapplications'], ['top-paid', 'toppaidapplications'], ['top-grossing', 'topgrossingapplications']]) {
+      const sourceUrl = `https://itunes.apple.com/us/rss/${legacy}/limit=100/genre=${genreId}/json`;
+      try {
+        const payload = await json(sourceUrl);
+        const entries = Array.isArray(payload?.feed?.entry) ? payload.feed.entry : [];
+        charts.push(...entries.map((entry, index) => ({ trackId: Number(entry.id?.attributes?.['im:id']), rank: index + 1,
+          chart, genreId, category, country: 'us', sourceUrl, capturedAt })).filter(row => row.trackId > 0));
+        console.log(`${category} ${chart}: ${entries.length}`);
+      } catch (error) {
+        failures.push({ sourceUrl, error: String(error) });
+        console.warn(`${category} ${chart}: unavailable`);
+      }
+      await wait(300);
+    }
+  }
+  // Interleave chart leaders across categories; keep known demonstration apps first.
+  const ids = [...new Set([...demoIds, ...charts.sort((a, b) => a.rank - b.rank).map(row => row.trackId)])];
+  const apps = [];
+  for (let index = 0; index < ids.length && apps.length < limit; index += 200) {
+    const batch = ids.slice(index, index + 200);
+    const sourceUrl = `https://itunes.apple.com/lookup?id=${batch.join(',')}&country=us&entity=software`;
+    try {
+      const payload = await json(sourceUrl);
+      for (const app of payload.results || []) {
+        if (app.wrapperType !== 'software' || !app.trackId) continue;
+        apps.push({ trackId: app.trackId, name: app.trackName, bundleId: app.bundleId, description: app.description,
+          iconUrl: app.artworkUrl512 || app.artworkUrl100, storeUrl: app.trackViewUrl, sellerName: app.sellerName,
+          primaryGenre: app.primaryGenreName, primaryGenreId: app.primaryGenreId, genres: app.genres,
+          price: app.price, currency: app.currency, formattedPrice: app.formattedPrice,
+          rating: app.averageUserRating ?? null, ratingCount: app.userRatingCount ?? null,
+          releaseDate: app.releaseDate, version: app.version, currentVersionReleaseDate: app.currentVersionReleaseDate,
+          minimumOsVersion: app.minimumOsVersion, releaseNotes: app.releaseNotes || '',
+          metadataFetchedAt: capturedAt,
+          metadataSource: `https://itunes.apple.com/lookup?id=${app.trackId}&country=us&entity=software`,
+          charts: charts.filter(row => row.trackId === app.trackId) });
+      }
+      console.log(`Lookup: ${apps.length} apps`);
+    } catch (error) {
+      failures.push({ sourceUrl, error: String(error) });
+      console.warn(`Lookup batch failed: ${String(error)}`);
+    }
+    await wait(800);
+  }
+  if (apps.length < limit) throw new Error(`Only retrieved ${apps.length}/${limit} apps; existing catalog preserved. Retry when Apple's feeds are available.`);
+  await save({ capturedAt, apps, failures });
+}
