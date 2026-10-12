@@ -27,3 +27,11 @@ function AppIcon({ app, flightId }: { app: Pick<AppSummary, 'id' | 'name' | 'ico
   const [failed, setFailed] = useState(false);
   return <div className="app-icon" data-flight-id={flightId}>{!failed && app.iconUrl ? <img src={iconThumbnail(app.iconUrl)} alt={`${app.name} icon`} onError={() => setFailed(true)} /> : <span>{app.name.slice(0, 1)}</span>}</div>;
 }
+function Evidence({ match }: { match: FeatureMatch }) {
+  return <details className="reference-evidence"><summary>Why this app <ChevronDown size={13} /></summary><div className="evidence-body">
+    <p>{match.confidenceDetail}</p>
+    {match.evidence.map((item, i) => <blockquote key={i}><p>{item.statement}</p><a href={item.sourceUrl} target="_blank" rel="noreferrer">{item.sourceLabel} <ArrowUpRight size={12} /></a><time>{item.asOf}</time></blockquote>)}
+    <div className="evidence-metrics">{match.stats.map(metric => <div key={metric.label}><span>{metric.label}</span><strong>{metric.value}</strong><small>{metric.status}</small></div>)}</div>
+    <p className="evidence-footnote">The rating is the app's public App Store score on the date in the sources.</p>
+  </div></details>;
+}
