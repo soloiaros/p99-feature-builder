@@ -161,3 +161,4 @@ export const FEATURE_DEFINITIONS: FeatureDefinition[] = [
     edgeCases: ['Purchase pending, cancellation, billing retry, grace period, refund and revocation.', 'Already-subscribed account signs in on a new device.', 'Receipt arrives after an app restart or webhook retry.', 'Offline access uses a bounded grace policy instead of permanent cached access.'],
     acceptance: ['A client-modified flag cannot grant premium access.', 'Replayed provider events do not extend access twice.', 'Restoring purchases recovers valid entitlements.', 'Price, renewal interval and trial end behavior are visible before purchase.'],
   },
+];
