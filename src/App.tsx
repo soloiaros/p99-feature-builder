@@ -10,3 +10,10 @@ import type { AnalyzeResponse, AppSummary, BriefResponse, CatalogResponse, Featu
 
 type Stage = 'home' | 'analyzing' | 'matching' | 'results';
 type SavedProject = { id: string; project: Project; features?: Feature[]; matches: FeatureMatch[]; savedAt: string; mode: string };
+
+async function api<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+  const response = await fetch(`/api/${path}`, { method: body ? 'POST' : 'GET', headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined, signal });
+  const data = await response.json() as T & { error?: string | { message?: string }; message?: string };
+  if (!response.ok) throw new Error(typeof data.error === 'string' ? data.error : data.error?.message || data.message || 'The request failed. Try again.');
+  return data;
+}
