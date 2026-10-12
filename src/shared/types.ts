@@ -15,3 +15,15 @@ export interface Metric {
   asOf: string;
   sourceUrl?: string;
 }
+
+export interface ProjectProfile {
+  name: string;
+  platform: string;
+  stack: string;
+}
+
+export interface Project extends ProjectProfile {
+  input: string;
+  description: string;
+  sourceUrl?: string;
+}
