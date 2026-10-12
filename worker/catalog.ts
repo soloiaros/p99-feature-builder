@@ -95,3 +95,16 @@ function supportsCustomFeature(line: string, terms: string[]): boolean {
   // Context can rank candidates, but cannot qualify an unrelated custom feature.
   return terms.every((term) => present.has(term));
 }
+function evidenceExcerpt(app: CatalogApp, feature: Feature): string {
+  const pattern = Object.hasOwn(evidenceTerms, feature.id) ? evidenceTerms[feature.id] : undefined;
+  const terms = customEvidenceTerms(feature);
+  let best = '';
+  let bestScore = -Infinity;
+  for (const { line, featureText, quality } of evidenceLines.get(app.trackId) ?? []) {
+    if (!(pattern ? pattern.test(featureText) : supportsCustomFeature(featureText, terms))) continue;
+    const score = quality + featureEvidenceStrength(feature.id, featureText);
+    if (score > bestScore) { best = line; bestScore = score; }
+  }
+  // Unreviewed keyword hints can contain only a heading or app name; never use them as fallback quotes.
+  return best.slice(0, 330);
+}
