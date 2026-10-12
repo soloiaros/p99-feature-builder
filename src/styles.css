@@ -30,3 +30,16 @@ svg { flex-shrink: 0; }
 .icon-button { width: 38px; min-height: 38px; padding: 8px; }
 .spin { animation: spin 1.2s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+.app-shell { display: flex; flex-direction: column; min-height: 100dvh; }
+.app-shell > main { flex: 1; position: relative; }
+.site-header { display: flex; align-items: center; justify-content: space-between; max-width: 1320px; width: 100%; height: 108px; padding: 0 48px; margin: 0 auto; transition: opacity .2s; }
+.brand-group { display: flex; align-items: center; gap: 16px; }
+.brand { padding: 7px 14px; min-height: 38px; color: #3b3c40; font-size: 22px; font-weight: 650; letter-spacing: -1.1px; }
+.robot-dock { display: block; width: 60px; height: 60px; }
+.app-shell[data-stage='results'] .robot-dock { width: 46px; height: 46px; }
+.robot-companion, .robot-companion:hover:not(:disabled), .robot-companion:active:not(:disabled) { display: block; min-height: 0; padding: 0; border: 0; border-radius: 14px; background: transparent; box-shadow: none; }
+.robot-companion { touch-action: manipulation; }
+.robot-companion:focus-visible { outline: 2px solid #d895b5; outline-offset: 12px; }
+.site-header nav { display: flex; align-items: center; gap: 12px; }
+.nav-link { font-size: 13px; }
+.count-badge { min-width: 18px; padding: 1px 5px; border-radius: 6px; background: #eceef1; color: #70747c; font-size: 11px; text-align: center; }
