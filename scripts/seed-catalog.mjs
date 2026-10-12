@@ -47,3 +47,14 @@ function enrich(app) {
   }
   return { ...app, features };
 }
+
+async function save(snapshot) {
+  await mkdir(fileURLToPath(new URL('../data/', import.meta.url)), { recursive: true });
+  const apps = snapshot.apps.slice(0, limit).map(enrich);
+  const output = { schemaVersion: 1, capturedAt: snapshot.capturedAt, country: 'us',
+    source: 'Apple iTunes Lookup API and public US chart RSS feeds',
+    featureMethod: 'description-keyword-v1', appCount: apps.length, apps,
+    failures: snapshot.failures || [] };
+  await writeFile(catalogPath, JSON.stringify(output, null, 2) + '\n');
+  console.log(`Saved ${apps.length} apps and ${apps.reduce((n, app) => n + app.features.length, 0)} evidence-backed feature hints to ${catalogPath}`);
+}
