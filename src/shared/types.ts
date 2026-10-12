@@ -78,3 +78,13 @@ export interface AnalyzeResponse {
   suggested: boolean;
   durationMs: number;
 }
+export interface MatchRequest { project: Project; features: Feature[] }
+export interface MatchResponse {
+  matches: FeatureMatch[];
+  unmatchedFeatures?: Feature[];
+  mode: EngineMode;
+  notice: string;
+  searchedCount: number;
+  catalogUpdatedAt: string;
+  durationMs: number;
+}
