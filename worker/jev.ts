@@ -47,3 +47,20 @@ function remember(key: string, answers: CachedDecision['answers'], expiresAt = D
   if (decisions.size >= MEMORY_LIMIT) decisions.delete(decisions.keys().next().value!);
   decisions.set(key, { answers, expiresAt: Math.min(expiresAt, Date.now() + MEMORY_TTL) });
 }
+async function readDecision(key: string, ids: string[]): Promise<Record<string, number> | null> {
+  const hit = decisions.get(key);
+  if (hit && hit.expiresAt > Date.now()) return parseNoulAnswers(hit, ids);
+  decisions.delete(key);
+  const cache = edgeCache();
+  if (!cache) return null;
+  try {
+    const response = await cache.match(new Request(`https://borrow-decision-cache.invalid/v1/${key}`));
+    if (!response) return null;
+    const value: unknown = JSON.parse(await limitedText(response.body, 160000));
+    if (!value || typeof value !== 'object' || !('expiresAt' in value) || typeof value.expiresAt !== 'number' || value.expiresAt <= Date.now()) return null;
+    const scores = parseNoulAnswers(value, ids);
+    if (!scores) return null;
+    remember(key, (value as CachedDecision).answers, value.expiresAt);
+    return scores;
+  } catch { return null; }
+}
