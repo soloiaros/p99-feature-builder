@@ -46,3 +46,10 @@ export function parseProject(value: unknown): Project {
     ...(typeof input.sourceUrl === 'string' ? { sourceUrl: validatePublicUrl(input.sourceUrl).href } : {}),
   };
 }
+export function parseFeature(value: unknown): Feature {
+  const input = record(value);
+  const name = textField(input.name, 'Feature name', 90);
+  const id = textField(input.id, 'Feature id', 90);
+  if (!/^[a-z0-9][a-z0-9-]{0,89}$/.test(id)) throw new ApiError(422, 'Feature ids must use lowercase letters, numbers and hyphens.');
+  return { id, name, description: textField(input.description, 'Feature description', 400, name) };
+}
