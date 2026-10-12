@@ -1,0 +1,40 @@
+{
+  "name": "p99-feature-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "deploy": "npm run build && wrangler deploy",
+    "typecheck": "tsc -b",
+    "test": "vitest run --config tests/vitest.config.ts",
+    "seed": "node scripts/seed-catalog.mjs",
+    "cf-typegen": "wrangler types",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/azeret-mono": "^5.2.8",
+    "@fontsource/dm-sans": "^5.2.8",
+    "fflate": "^0.8.2",
+    "lucide-react": "^0.468.0",
+    "motion": "^12.23.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "robot-heads": "^0.3.0",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.13.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@types/three": "^0.186.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "typescript": "~5.9.2",
+    "vite": "^6.3.5",
+    "vitest": "^5.0.3",
+    "wrangler": "^4.43.0"
+  }
+}
