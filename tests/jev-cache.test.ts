@@ -58,3 +58,17 @@ describe('successful Jev decision caching', () => {
     expect(replay.cached).toBe(true);
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
+  it('expires memory after one hour and validates edge cache content', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-12T09:00:00Z'));
+    const { decide } = await import('../worker/jev');
+    const fetcher = vi.fn(async () => success()) as unknown as typeof fetch;
+    await decide({ JEV_API_KEY: 'key' }, 'state', questions, fetcher);
+    vi.setSystemTime(new Date('2026-10-12T10:00:01Z'));
+    expect((await decide({ JEV_API_KEY: 'key' }, 'state', questions, fetcher)).cached).toBe(false);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    vi.resetModules();
+    vi.stubGlobal('caches', { default: { match: async () => new Response(JSON.stringify({ answers: { a: { noul: 'not-a-number' } }, expiresAt: Date.now() + 100000 })), put: async () => {} } });
+    expect((await (await import('../worker/jev')).decide({ JEV_API_KEY: 'key' }, 'state', questions, fetcher)).cached).toBe(false);
+    expect(fetcher).toHaveBeenCalledTimes(3);
+  });
