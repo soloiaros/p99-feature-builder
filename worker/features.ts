@@ -162,3 +162,5 @@ export const FEATURE_DEFINITIONS: FeatureDefinition[] = [
     acceptance: ['A client-modified flag cannot grant premium access.', 'Replayed provider events do not extend access twice.', 'Restoring purchases recovers valid entitlements.', 'Price, renewal interval and trial end behavior are visible before purchase.'],
   },
 ];
+
+export const FEATURES: Feature[] = FEATURE_DEFINITIONS.map(({ id, name, description }) => ({ id, name, description }));
