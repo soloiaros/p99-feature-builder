@@ -182,3 +182,25 @@ export function generateBrief(project: Project, match: FeatureMatch): BriefRespo
     generatedAt: new Date().toISOString(), cached: false,
   };
 }
+
+const memory = new Map<string, { expires: number; brief: BriefResponse }>();
+export async function cachedBrief(project: Project, match: FeatureMatch, origin: string): Promise<BriefResponse> {
+  // Evidence participates in the signature so corrected excerpts cannot reuse stale bundles.
+  const payload = JSON.stringify({ version: 2, project, feature: match.feature, app: match.app.id, evidence: match.evidence, snapshot: capturedAt });
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(payload));
+  const hash = Array.from(new Uint8Array(digest), (part) => part.toString(16).padStart(2, '0')).join('');
+  const cached = memory.get(hash);
+  if (cached && cached.expires > Date.now()) return { ...cached.brief, cached: true };
+  const cache = typeof caches !== 'undefined' && 'default' in caches ? (caches as unknown as { default: Cache }).default : undefined;
+  const key = new Request(`${origin}/__internal_brief_cache/${hash}`);
+  if (cache) {
+    try { const hit = await cache.match(key); if (hit) return { ...await hit.json() as BriefResponse, cached: true }; } catch { /* Cache failure never blocks generation. */ }
+  }
+  const brief = generateBrief(project, match);
+  if (memory.size >= 40) memory.delete(memory.keys().next().value!);
+  memory.set(hash, { brief, expires: Date.now() + 3600000 });
+  if (cache) {
+    try { await cache.put(key, new Response(JSON.stringify(brief), { headers: { 'content-type': 'application/json', 'cache-control': 'max-age=3600' } })); } catch { /* Local cache is still available. */ }
+  }
+  return brief;
+}
