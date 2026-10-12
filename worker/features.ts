@@ -21,3 +21,13 @@ export const FEATURE_DEFINITIONS: FeatureDefinition[] = [
     edgeCases: ['Daylight saving transitions and travel across time zones; explain which local day receives a completion.', 'Offline completion synced after midnight; preserve captured time while bounding client clock skew.', 'Deletion or correction of a completion recalculates the derived count.', 'First use, no qualifying activity, a year-long run, and a missed day all have clear states.'],
     acceptance: ['Given two completions on one date, the count increases once.', 'Given consecutive local dates spanning a DST transition, the streak remains consecutive.', 'Given a missed date, currentCount restarts at one on the next completion while longestCount is retained.', 'The same idempotency key cannot produce two completion records.'],
   },
+  {
+    id: 'widgets', name: 'Home screen widgets', description: 'Keep the next useful action one glance away.',
+    keywords: ['widget', 'home screen', 'lock screen', 'glance', 'quick action'],
+    goal: 'Let people understand their current state and reach a useful action without opening a full app session.',
+    entities: ['WidgetSnapshot: schemaVersion, userId, primaryValue, subtitle, nextActionRoute, generatedAt, expiresAt', 'WidgetPreference: widgetInstanceId, configuration, privacyMode', 'WidgetAction: idempotencyKey, actionType, targetId, requestedAt, outcome'],
+    flow: ['Person adds a small or medium widget and chooses what it displays.', 'The widget reads a compact cached snapshot and shows when it was updated.', 'Tap opens a deep link to the relevant item; supported quick actions apply safely.', 'The app updates the shared snapshot after changes and requests a timeline refresh.'],
+    rules: ['On iOS use a WidgetKit extension and a shared App Group container; never require the main process to remain alive.', 'Respect platform refresh budgets; derive a useful timeline instead of polling frequently.', 'Treat cached widget data as stale unless timestamps and user identity match.', 'On Web provide a compact installable home view; do not promise an unsupported native widget.'],
+    edgeCases: ['Signed out user, revoked account, empty dataset and stale snapshot.', 'Deep link target was deleted or belongs to another account.', 'Offline action retries, app upgrades and old snapshot schema versions.', 'Lock screen privacy hides sensitive values by default.'],
+    acceptance: ['Widget renders meaningful cached content with no network.', 'Every tap opens the correct screen or a safe empty state.', 'Account switch removes snapshots from the previous user.', 'Small and medium layouts fit large text and display a stale indicator after expiry.'],
+  },
