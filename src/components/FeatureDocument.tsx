@@ -61,3 +61,13 @@ function inline(text: string): ReactNode[] {
     return part;
   });
 }
+
+function flowNodes(source: string): { id: string; label: string; decision: boolean }[] {
+  // Render the server's documented flow without executing Mermaid or interpreting HTML.
+  const nodes = new Map<string, { id: string; label: string; decision: boolean }>();
+  for (const match of source.matchAll(/\b([A-Za-z][\w]*)(\[|\{)"([^"\n]+)"(?:\]|\})/g)) {
+    const label = match[3].replace(/#(\d+);/g, (original, digits: string) => Number(digits) <= 0x10ffff ? String.fromCodePoint(Number(digits)) : original);
+    nodes.set(match[1], { id: match[1], label, decision: match[2] === '{' });
+  }
+  return [...nodes.values()].slice(0, 16);
+}
