@@ -63,3 +63,5 @@ export async function handleRequest(request: Request, env: Env, fetcher: typeof 
     return json({ error: 'We could not finish that request. Please try again, or use a short app description.' }, 503);
   }
 }
+
+export default { fetch: (request: Request, env: Env) => handleRequest(request, env) } satisfies ExportedHandler<Env>;
