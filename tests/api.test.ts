@@ -168,3 +168,13 @@ describe('landing-page safety', () => {
     const fetcher = (async (url: unknown) => new Response(JSON.stringify({ Status: 0, Answer: [{ type: String(url).includes('AAAA') ? 28 : 1, data: String(url).includes('AAAA') ? 'fe80::1' : '8.8.8.8' }] }))) as typeof fetch;
     await expect(assertPublicDns('public.example.com', fetcher)).rejects.toThrow('public addresses');
   });
+  it('does not follow redirects and discards executable page content', async () => {
+    const fetcher = vi.fn(async (url: unknown) => String(url).includes('cloudflare-dns.com') ? new Response(JSON.stringify({ Status: 0, Answer: [{ type: 1, data: '8.8.8.8' }] })) : new Response(null, { status: 302, headers: { location: 'https://127.0.0.1' } })) as unknown as typeof fetch;
+    await expect(readLandingPage('https://public.example.com', fetcher)).rejects.toThrow('redirects');
+    expect(fetcher).toHaveBeenCalledTimes(3);
+    const content = pageText('<title>My &amp; App</title><script>secret javascript</script><style>hidden css</style><p>A real journaling app.</p>');
+    expect(content.title).toBe('My & App');
+    expect(content.description).not.toContain('secret javascript');
+    expect(content.description).toContain('A real journaling app.');
+  });
+});
