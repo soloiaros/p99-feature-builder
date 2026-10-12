@@ -61,3 +61,13 @@ export const FEATURE_DEFINITIONS: FeatureDefinition[] = [
     edgeCases: ['Target of zero, target edited mid-period, negative corrections and overachievement.', 'Duplicate or late events; multiple devices editing concurrently.', 'Empty state, sparse history and dates with genuinely no events.', 'Archived goal with historical data remains readable.'],
     acceptance: ['Displayed totals equal the sum of valid events for the chosen interval.', 'Deleting or correcting an event updates all derived summaries.', 'Loading, empty, error and success states are visually distinct.', 'Charts have a text summary with the same values.'],
   },
+  {
+    id: 'social', name: 'Social accountability', description: 'Small, consent-based circles that help people follow through.',
+    keywords: ['friend', 'community', 'social', 'share', 'together', 'group', 'challenge'],
+    goal: 'Support encouragement between people who explicitly choose to connect.',
+    entities: ['Circle: id, ownerId, name, visibility, createdAt', 'Membership: circleId, userId, role, status, joinedAt', 'SharedActivity: id, circleId, authorId, activityType, summary, createdAt', 'ModerationAction: actorId, targetId, action, createdAt'],
+    flow: ['Person creates a private circle or accepts a single-use invitation.', 'They choose exactly which activity types may be shared.', 'A compact feed shows approved activity and a small set of positive reactions.', 'Every item offers mute, report and block; settings offer leave and delete.'],
+    rules: ['Default to private and do not upload contacts without explicit permission.', 'Authorize every read and write by active circle membership.', 'Use expiring, single-use invitation tokens stored as hashes.', 'Rate limit invitations and reactions; make block take effect on all surfaces.'],
+    edgeCases: ['Invitation reused, expired or opened after circle deletion.', 'Member removed while composing a reaction or reading a cached feed.', 'Blocked member, report processing and malicious text.', 'Account deletion removes identifying feed content or anonymizes it under an explicit policy.'],
+    acceptance: ['A nonmember cannot retrieve circle data even with a guessed ID.', 'A blocked user cannot interact with the blocker.', 'Leaving a circle immediately prevents future access.', 'Sharing is off until a person opts in.'],
+  },
