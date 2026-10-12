@@ -6,3 +6,12 @@ export interface Source {
   url: string;
   accessedAt: string;
 }
+
+export interface Metric {
+  label: string;
+  value: string;
+  status: DataStatus;
+  detail: string;
+  asOf: string;
+  sourceUrl?: string;
+}
