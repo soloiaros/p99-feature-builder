@@ -84,3 +84,8 @@ function normalizedTerms(text: string): string[] {
     return term;
   });
 }
+function customEvidenceTerms(feature: Feature): string[] {
+  const terms = [...new Set(normalizedTerms(feature.name))];
+  const distinctive = terms.filter((term) => !genericCustomTerms.has(term));
+  return distinctive.length ? distinctive : terms;
+}
