@@ -41,3 +41,13 @@ const SUGGESTIONS: Feature[] = [
   suggestion('custom-map-discovery', 'Map discovery', 'Explore relevant places on an interactive map.'),
 ];
 const ROWS = [SUGGESTIONS.slice(0, 8), SUGGESTIONS.slice(8, 16), SUGGESTIONS.slice(16)];
+
+function customFeature(name: string): Feature {
+  const normalized = normalize(name);
+  const known = SUGGESTIONS.find((item) => normalize(item.name) === normalized || item.id === normalized);
+  if (known) return known;
+  const slug = normalized.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 38) || 'feature';
+  let hash = 2166136261;
+  for (const character of normalized) hash = Math.imul(hash ^ character.charCodeAt(0), 16777619);
+  return { id: `custom-${slug}-${(hash >>> 0).toString(36)}`, name, description: `Find interface patterns for ${name.toLocaleLowerCase()}.` };
+}
