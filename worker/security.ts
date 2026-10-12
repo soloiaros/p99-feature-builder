@@ -113,3 +113,22 @@ export function pageText(html: string): { title: string; description: string } {
   const clean = html.replace(/<(script|style|noscript|svg|nav|footer|header)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ').replace(/<!--[\s\S]*?-->/g, ' ').replace(/<[^>]*>/g, ' ');
   return { title, description: decodeEntities(clean).replace(/\s+/g, ' ').trim().slice(0, 10000) };
 }
+export async function readLandingPage(input: string, fetcher: typeof fetch = fetch): Promise<{ title: string; description: string; sourceUrl: string }> {
+  const url = validatePublicUrl(input);
+  await assertPublicDns(url.hostname, fetcher);
+  const response = await fetcher.call(globalThis, url.href, {
+    headers: { accept: 'text/html,text/plain;q=0.8', 'user-agent': 'p99FeatureEngine/1.0 (+landing-page-analysis)' },
+    redirect: 'manual', signal: AbortSignal.timeout(4500),
+  });
+  if (response.status >= 300 && response.status < 400) {
+    // Never follow user-controlled redirects (including public-to-private redirects).
+    throw new ApiError(422, 'This page redirects. Paste its final HTTPS address or describe your app.');
+  }
+  if (!response.ok) throw new ApiError(422, 'That website did not allow us to read it. Paste a description instead.');
+  const type = response.headers.get('content-type')?.toLowerCase() ?? '';
+  if (!type.includes('text/html') && !type.includes('text/plain')) throw new ApiError(422, 'Use a public HTML landing page or describe your app.');
+  const content = await limitedText(response.body, 700000);
+  const extracted = type.includes('text/html') ? pageText(content) : { title: '', description: content.slice(0, 10000) };
+  if (extracted.description.length < 30) throw new ApiError(422, 'This page has too little readable text. Describe your app instead.');
+  return { ...extracted, sourceUrl: url.href };
+}
