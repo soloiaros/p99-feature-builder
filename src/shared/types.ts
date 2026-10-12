@@ -66,3 +66,15 @@ export interface FeatureMatch {
   confidenceDetail: string;
   stats: Metric[];
 }
+
+export interface AnalyzeRequest { input: string; profile?: Partial<ProjectProfile>; features?: Feature[] }
+export interface AnalyzeResponse {
+  project: Project;
+  features: Feature[];
+  candidates?: AppSummary[];
+  mode: EngineMode;
+  notice: string;
+  source: 'landing-page' | 'description';
+  suggested: boolean;
+  durationMs: number;
+}
