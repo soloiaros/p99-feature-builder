@@ -158,3 +158,13 @@ export function createMatch(feature: Feature, candidate: Candidate, jevScore?: n
     confidenceDetail: jevScore !== undefined ? `Jev feature-fit score: ${Math.round(jevScore * 100)}%. This is a model judgment of textual fit, not proof of feature quality or commercial causation.` : 'Local keyword match against the publisher description. Feature quality has not been independently tested.',
   };
 }
+
+export function galleryApps(): AppSummary[] {
+  const ids = [1528595748, 963034692, 1454778585, 493145008, 866450515, 570060128, 426826309, 572688855, 1016366447, 1458862350, 1523682319, 1499198946, 571800810, 1041517543, 1232780281, 634598719, 904237743, 1045162841];
+  const selected = ids.flatMap((id) => appById.has(String(id)) ? [appById.get(String(id))!] : []);
+  for (const app of [...apps].sort((a, b) => (b.ratingCount ?? 0) - (a.ratingCount ?? 0))) {
+    if (selected.length >= 60) break;
+    if (!selected.some((item) => item.trackId === app.trackId)) selected.push(app);
+  }
+  return selected.map(summarizeApp);
+}
