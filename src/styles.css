@@ -43,3 +43,27 @@ svg { flex-shrink: 0; }
 .site-header nav { display: flex; align-items: center; gap: 12px; }
 .nav-link { font-size: 13px; }
 .count-badge { min-width: 18px; padding: 1px 5px; border-radius: 6px; background: #eceef1; color: #70747c; font-size: 11px; text-align: center; }
+.home { padding: 65px 28px 82px; }
+.app-shell:not([data-stage='home']) .home { position: absolute; inset: 0 0 auto; pointer-events: none; opacity: 0 !important; }
+.hero { max-width: 980px; margin: 0 auto; text-align: center; }
+.hero h1 { font-size: clamp(40px, 4.4vw, 64px); font-weight: 500; letter-spacing: -.062em; line-height: 1.12; text-wrap: balance; }
+.hero h1 s { color: #a7a6ab; text-decoration-thickness: 2px; text-decoration-color: #86848b; }
+.hero-description { max-width: 36em; margin: 26px auto 0; }
+.search-form { max-width: 680px; margin: 58px auto 0; }
+.field-label { display: block; margin: 0 0 12px 3px; color: #5f6168; font-size: 13px; font-weight: 500; }
+.search-box, .query-card { position: relative; border: 1px solid #fff; border-radius: 22px; background: linear-gradient(145deg, #fff, #fafafa); box-shadow: var(--panel-shadow), 0 0 0 1px #e9e9ecab; }
+.search-box { padding: 22px 24px; }
+.search-box:focus-within { box-shadow: var(--panel-shadow), 0 0 0 1px #d8bfcd; }
+.search-box textarea { display: block; width: 100%; height: 60px; border: 0; resize: none; outline: none; padding: 0; background: transparent; color: #41434a; font-size: 16px; line-height: 1.75; }
+.search-box textarea::placeholder { color: #7a7c83; }
+.search-box textarea:focus-visible { outline: none; }
+.search-actions { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 27px; }
+.profile-button { padding: 9px 13px; min-height: 38px; gap: 7px; font-size: 12px; }
+.profile-fields { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 16px; overflow: hidden; }
+.profile-fields label { display: flex; flex-direction: column; gap: 8px; padding: 24px 1px 4px; color: #71747a; font-size: 12px; }
+.profile-fields input, .profile-fields select { width: 100%; min-width: 0; min-height: 40px; border: 1px solid #e6e6e9; border-radius: 10px; padding: 8px 10px; background: #fff; color: #535961; font-size: 13px; }
+.search-footnote { margin-top: 23px; text-align: center; }
+.fine, .hero-description, .search-footnote, .fp-hint, .results-heading h1 + p, .results-note, .evidence-footnote, .engine-notice, .site-footer, .unmatched-row p, .reference-excerpt, .reference-meta, .about-data, .about-data p, .modal p, .document-markdown h1 + p, .feature-document-statusbar, .search-status > span {
+  font-family: var(--fine); font-optical-sizing: auto; font-weight: 400; font-size: 14px; line-height: 1.6; color: #5b5b5b;
+}
+.error-message { margin-top: 18px; color: #a4544b; font-size: 13px; line-height: 1.6; }
