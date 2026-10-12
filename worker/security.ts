@@ -29,3 +29,9 @@ export async function limitedText(body: ReadableStream<Uint8Array> | null, limit
     return result + decoder.decode();
   } finally { reader.releaseLock(); }
 }
+export async function readJson(request: Request): Promise<Record<string, unknown>> {
+  if (!request.headers.get('content-type')?.toLowerCase().startsWith('application/json')) throw new ApiError(415, 'Send a JSON request.');
+  if (Number(request.headers.get('content-length')) > 100_000) throw new ApiError(413, 'The request is too large.');
+  const body = await limitedText(request.body, 100_000);
+  try { return record(JSON.parse(body)); } catch (error) { if (error instanceof ApiError) throw error; throw new ApiError(400, 'The request contains invalid JSON.'); }
+}
