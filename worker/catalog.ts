@@ -75,3 +75,12 @@ function featureEvidenceStrength(id: string, text: string): number {
   if (/consecutive days|days in a row/i.test(text)) return 30;
   return /\b(?:current|best|longest|daily|build|keep|maintain|extend|break|repair)\b.{0,35}\bstreaks?\b|\bstreak\s+(?:count|length|repair|freeze)\b/i.test(text) ? 12 : 0;
 }
+const genericCustomTerms = new Set(['custom', 'capability', 'smart', 'intelligent', 'advanced', 'simple', 'easy', 'fast', 'quick', 'seamless', 'personalized', 'personalised', 'powered', 'based', 'track', 'tracking', 'progress', 'daily']);
+function normalizedTerms(text: string): string[] {
+  return text.toLowerCase().split(/[^a-z0-9]+/).filter((term) => term.length >= 2 && !stopwords.has(term)).map((term) => {
+    if (/ing$/.test(term) && term.length > 5) return term.slice(0, -3).replace(/([a-z])\1$/, '$1');
+    if (/ies$/.test(term) && term.length > 4) return `${term.slice(0, -3)}y`;
+    if (/s$/.test(term) && !/ss$/.test(term) && term.length > 3) return term.slice(0, -1);
+    return term;
+  });
+}
