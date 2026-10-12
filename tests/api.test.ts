@@ -48,3 +48,10 @@ describe('end-to-end API without a provider key', () => {
     const repeated = await (await handleRequest(post('/api/brief', request), {})).json() as BriefResponse;
     expect(repeated.cached).toBe(true);
   });
+  it('rejects oversized bodies, invalid features and cross-origin mutation requests', async () => {
+    expect((await handleRequest(post('/api/analyze', { input, profile }, { origin: 'https://attacker.example' }), {})).status).toBe(403);
+    expect((await handleRequest(post('/api/analyze', { input: 'x'.repeat(110000) }), {})).status).toBe(413);
+    expect((await handleRequest(post('/api/analyze', { input: 'x' }), {})).status).toBe(422);
+    const malformed = new Request(`${origin}/api/analyze`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{broken' });
+    expect((await handleRequest(malformed, {})).status).toBe(400);
+  });
