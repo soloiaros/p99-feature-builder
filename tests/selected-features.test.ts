@@ -79,3 +79,13 @@ describe('independent feature matching', () => {
     expect(result.matches.map((match) => match.app.id)).toEqual([String(shared!.app.trackId), String(shared!.app.trackId)]);
     expect(result.unmatchedFeatures).toEqual([]);
   });
+
+  it('supports an evidenced custom feature and reports unsupported tags without generic context matches', async () => {
+    const voice: Feature = { id: 'constructor', name: 'Voice recording', description: 'Record a voice note in a journal.' };
+    const result = await matchFeatures(project, [voice, impossible], {});
+    expect(result.matches.map((match) => match.feature.id)).toEqual([voice.id]);
+    expect(result.matches[0].evidence[0].statement.toLowerCase()).toContain('voice');
+    expect(result.unmatchedFeatures).toEqual([impossible]);
+    expect(result.notice).toContain('Unmatched features');
+    expect(shortlist(impossible, project.description)).toEqual([]);
+  });
