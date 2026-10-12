@@ -94,3 +94,16 @@ describe('independent feature matching', () => {
     const feature = { id: 'custom-example', name, description: name };
     expect(shortlist(feature, project.description).length).toBeGreaterThan(0);
   });
+
+  it('returns a Jev-rejected feature as unmatched instead of silently omitting it', async () => {
+    const fetcher = vi.fn(async (_url: unknown, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { questions: Record<string, unknown> };
+      return new Response(JSON.stringify({ answers: Object.fromEntries(Object.keys(body.questions).map((id) => [id, { noul: 0.05 }])) }));
+    }) as unknown as typeof fetch;
+    const response = await handleRequest(new Request(`${origin}/api/match`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ project, features: [widgets] }) }), { JEV_API_KEY: 'all-candidates-rejected' }, fetcher);
+    const result = await response.json() as MatchResponse;
+    expect(result.mode).toBe('jev');
+    expect(result.matches).toEqual([]);
+    expect(result.unmatchedFeatures).toEqual([widgets]);
+  });
+});
