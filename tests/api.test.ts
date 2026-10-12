@@ -77,3 +77,9 @@ describe('end-to-end API without a provider key', () => {
     expect(changed.files.find((file) => file.name === 'sources.json')!.content).toContain('Corrected publisher excerpt');
     expect((await cachedBrief(analysis.project, updated, origin)).cached).toBe(true);
   });
+  it('honors the edge rate-limit binding', async () => {
+    const response = await handleRequest(post('/api/analyze', { input }), { API_RATE_LIMITER: { limit: async () => ({ success: false }) } });
+    expect(response.status).toBe(429);
+    expect(response.headers.get('retry-after')).toBe('60');
+  });
+});
