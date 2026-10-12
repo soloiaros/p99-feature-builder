@@ -88,3 +88,21 @@ export interface MatchResponse {
   catalogUpdatedAt: string;
   durationMs: number;
 }
+
+export interface BriefSection { id: string; title: string; content: string }
+export interface BundleFile { name: string; content: string; mimeType: string }
+export interface BriefResponse {
+  matchId: string;
+  title: string;
+  markdown: string;
+  sections: BriefSection[];
+  wireframeSvg: string;
+  flowMermaid: string;
+  sources: Source[];
+  files: BundleFile[];
+  mode: 'template';
+  notice: string;
+  generatedAt: string;
+  cached: boolean;
+}
+export interface BriefRequest { project: Project; match: FeatureMatch }
