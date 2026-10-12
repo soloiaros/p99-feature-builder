@@ -41,3 +41,13 @@ export const FEATURE_DEFINITIONS: FeatureDefinition[] = [
     edgeCases: ['App killed between steps, browser refresh, returning user and account switch.', 'No recommendation fits the answers; offer a neutral editable starting point.', 'Backtracking changes a branch; clear answers that no longer apply.', 'Screen reader reading order, keyboard navigation and text expansion.'],
     acceptance: ['A skipped optional step never blocks reaching the first useful action.', 'Restarting the app resumes the saved step and answers.', 'Changing an answer updates the preview deterministically.', 'Submitting twice creates exactly one initial plan.'],
   },
+  {
+    id: 'reminders', name: 'Thoughtful reminders', description: 'Timely, controllable nudges tied to real intent.',
+    keywords: ['remind', 'notification', 'alert', 'schedule', 'nudge', 'habit', 'routine'],
+    goal: 'Help people act at a time they choose while protecting their attention.',
+    entities: ['Reminder: id, userId, targetId, scheduleType, localTime, timeZone, weekdays, enabled', 'ReminderDelivery: reminderId, scheduledForUTC, status, deliveredAt?, dedupeKey', 'NotificationPreference: userId, permissionState, quietHours, channel'],
+    flow: ['After a person creates a goal, offer a reminder with an explicit benefit.', 'Let them choose days and local time before asking for system permission.', 'A notification deep links to the relevant action with snooze or complete when supported.', 'Settings provide pause, reschedule, and disable controls.'],
+    rules: ['Request permission after an intentional action, never on initial page load.', 'Resolve recurring local schedules with an IANA time zone and adapt to DST.', 'Cancel a pending notification when its target is completed or deleted.', 'Deduplicate sends and honor quiet hours and current permission state.'],
+    edgeCases: ['Permission denied or later revoked; present settings help without nagging.', 'Travel, clock changes, DST missing/repeated hours.', 'Device offline, duplicate delivery and stale deep link.', 'Account logout cancels personally scoped local notifications.'],
+    acceptance: ['Declining permission leaves the core feature usable.', 'Completing the target cancels its pending reminder.', 'A single scheduled occurrence produces at most one delivery.', 'Editing a reminder cancels the old schedule and installs the new one.'],
+  },
