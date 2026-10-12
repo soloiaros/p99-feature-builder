@@ -23,3 +23,7 @@ function loadSaved(): SavedProject[] {
     return Array.isArray(raw) ? raw.filter(item => item?.project?.name && Array.isArray(item?.matches)).slice(0, 12) : [];
   } catch { return []; }
 }
+function AppIcon({ app, flightId }: { app: Pick<AppSummary, 'id' | 'name' | 'iconUrl'>; flightId?: string }) {
+  const [failed, setFailed] = useState(false);
+  return <div className="app-icon" data-flight-id={flightId}>{!failed && app.iconUrl ? <img src={iconThumbnail(app.iconUrl)} alt={`${app.name} icon`} onError={() => setFailed(true)} /> : <span>{app.name.slice(0, 1)}</span>}</div>;
+}
