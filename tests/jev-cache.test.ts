@@ -28,3 +28,13 @@ describe('successful Jev decision caching', () => {
     await decide({ JEV_API_KEY: 'key-b' }, 'state one', questions, fetcher);
     expect(fetcher).toHaveBeenCalledTimes(6);
   });
+  it('never caches failures or incomplete provider answers', async () => {
+    const { decide } = await import('../worker/jev');
+    const responses = [new Response('rejected', { status: 401 }), new Response('{}'), success()];
+    const fetcher = vi.fn(async () => responses.shift()!) as unknown as typeof fetch;
+    expect((await decide({ JEV_API_KEY: 'key' }, 'state', questions, fetcher)).scores).toBeNull();
+    expect((await decide({ JEV_API_KEY: 'key' }, 'state', questions, fetcher)).scores).toBeNull();
+    expect((await decide({ JEV_API_KEY: 'key' }, 'state', questions, fetcher)).scores?.a).toBe(0.92);
+    expect((await decide({ JEV_API_KEY: 'key' }, 'state', questions, fetcher)).cached).toBe(true);
+    expect(fetcher).toHaveBeenCalledTimes(3);
+  });
