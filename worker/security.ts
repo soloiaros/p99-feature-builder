@@ -35,3 +35,14 @@ export async function readJson(request: Request): Promise<Record<string, unknown
   const body = await limitedText(request.body, 100_000);
   try { return record(JSON.parse(body)); } catch (error) { if (error instanceof ApiError) throw error; throw new ApiError(400, 'The request contains invalid JSON.'); }
 }
+export function parseProject(value: unknown): Project {
+  const input = record(value);
+  return {
+    input: textField(input.input, 'Project input', 6000),
+    description: textField(input.description, 'Project description', 12000),
+    name: textField(input.name, 'Project name', 100),
+    platform: textField(input.platform, 'Platform', 80),
+    stack: textField(input.stack, 'Stack', 160),
+    ...(typeof input.sourceUrl === 'string' ? { sourceUrl: validatePublicUrl(input.sourceUrl).href } : {}),
+  };
+}
