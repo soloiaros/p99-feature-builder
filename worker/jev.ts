@@ -27,3 +27,9 @@ export function parseNoulAnswers(data: unknown, ids: string[]): Record<string, n
   }
   return result;
 }
+export interface DecisionResult { scores: Record<string, number> | null; reason: 'missing-key' | 'unavailable' | 'rejected' | null; durationMs: number; cached?: boolean }
+const MEMORY_TTL = 60 * 60 * 1000;
+const EDGE_TTL = 6 * 60 * 60 * 1000;
+const MEMORY_LIMIT = 128;
+interface CachedDecision { answers: Record<string, { noul: number }>; expiresAt: number }
+const decisions = new Map<string, CachedDecision>();
