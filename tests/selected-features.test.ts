@@ -28,3 +28,15 @@ describe('explicit feature selection', () => {
     expect(result.mode).toBe('local');
     expect(fetcher).not.toHaveBeenCalled();
   });
+
+  it('still extracts landing-page context while preserving explicit selections', async () => {
+    const fetcher = vi.fn(async (url: unknown) => String(url).includes('cloudflare-dns.com')
+      ? new Response(JSON.stringify({ Status: 0, Answer: [{ type: 1, data: '8.8.8.8' }] }))
+      : new Response('<title>Small steps</title><p>Organize your habits, reminders, and progress in one calm place.</p>', { headers: { 'content-type': 'text/html' } })) as unknown as typeof fetch;
+    const result = await analyze({ input: 'https://public.example.com', features: [customWidgets] }, { JEV_API_KEY: 'selected-url-context' }, fetcher);
+    expect(result.features).toEqual([customWidgets]);
+    expect(result.project.description).toContain('Organize your habits');
+    expect(result.source).toBe('landing-page');
+    expect(result.project.sourceUrl).toBe('https://public.example.com/');
+    expect(fetcher).toHaveBeenCalledTimes(3);
+  });
