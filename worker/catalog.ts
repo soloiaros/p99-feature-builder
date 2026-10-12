@@ -108,3 +108,35 @@ function evidenceExcerpt(app: CatalogApp, feature: Feature): string {
   // Unreviewed keyword hints can contain only a heading or app name; never use them as fallback quotes.
   return best.slice(0, 330);
 }
+export function shortlist(feature: Feature, description: string, limit = 4): Candidate[] {
+  const canonical = Object.hasOwn(evidenceTerms, feature.id);
+  const definition = featureDefinition(feature);
+  const indexed = featureIndex.get(feature.id);
+  const textTokens = keywords(`${feature.name} ${feature.description}`);
+  const projectTokens = keywords(description);
+  const domainGroups = [
+    ['journal', 'journaling', 'diary', 'mood', 'reflection'],
+    ['strength', 'workout', 'fitness', 'training', 'exercise', 'gym'],
+    ['habit', 'habits', 'routine', 'streak'],
+    ['meditation', 'mindfulness', 'meditate', 'breathing', 'sleep'],
+    ['language', 'vocabulary', 'lesson', 'learning'],
+    ['budget', 'finance', 'expense', 'money', 'spending'],
+    ['recipe', 'meal', 'nutrition', 'calorie', 'food'],
+    ['task', 'todo', 'calendar', 'planning', 'planner'],
+  ];
+  const lowerProject = description.toLowerCase();
+  const domain = domainGroups.map((terms) => ({ terms, hits: terms.filter((term) => new RegExp(`\\b${term}\\b`).test(lowerProject)).length })).sort((a, b) => b.hits - a.hits)[0];
+  const pool = indexed?.length ? indexed : apps;
+  return pool.map((app) => {
+    const hint = app.features.find((item) => item.id === feature.id);
+    const normalized = searchable.get(app.trackId)!;
+    const lower = normalized.description;
+    const featureHits = textTokens.filter((term) => lower.includes(term)).length;
+    const keywordHits = canonical ? definition.keywords.filter((term) => lower.includes(term)).length : 0;
+    const contextHits = projectTokens.filter((term) => normalized.context.includes(term)).length;
+    const domainScore = domain.hits ? domain.terms.reduce((score, term) => score + (normalized.name.includes(term) ? 12 : 0) + (normalized.context.includes(term) ? 5 : 0), 0) : 0;
+    const line = evidenceExcerpt(app, feature);
+    const fit = canonical ? (hint ? 25 : 0) + Math.min(featureHits, 5) * 3 + Math.min(keywordHits, 5) * 2 : line ? 25 + Math.min(featureHits, 5) * 3 : 0;
+    return { app, localScore: fit + domainScore + Math.min(contextHits, 10) * 1.5 + Math.min(Math.log10((app.ratingCount ?? 0) + 1), 7) * 0.8 + (app.rating ?? 0) * 0.5, excerpt: line.slice(0, 330), explicit: !!hint, fit };
+  }).filter((item) => item.fit > 0 && item.excerpt).sort((a, b) => b.localScore - a.localScore).slice(0, limit);
+}
