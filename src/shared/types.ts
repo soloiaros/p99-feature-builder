@@ -33,3 +33,16 @@ export interface Feature {
   name: string;
   description: string;
 }
+
+export interface AppSummary {
+  id: string;
+  name: string;
+  iconUrl: string;
+  category: string;
+  description: string;
+  appStoreUrl: string;
+  rating: number | null;
+  ratingCount: number | null;
+  stats: Metric[];
+  sources: Source[];
+}
