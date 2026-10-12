@@ -51,3 +51,10 @@ export function summarizeApp(app: CatalogApp): AppSummary {
 const stopwords = new Set(['a', 'an', 'the', 'my', 'app', 'with', 'and', 'for', 'that', 'this', 'our', 'your', 'from', 'into', 'their', 'have', 'users', 'user', 'feature', 'features', 'helps', 'help', 'build', 'make', 'people', 'use', 'using', 'ios', 'web']);
 export function keywords(text: string): string[] { return [...new Set(text.toLowerCase().split(/[^a-z0-9]+/).filter((term) => term.length >= 3 && !stopwords.has(term)))].slice(0, 50); }
 export interface Candidate { app: CatalogApp; localScore: number; excerpt: string; explicit: boolean }
+const evidenceTerms: Record<string, RegExp> = {
+  streaks: /\bstreaks?\b|consecutive days|days in a row/i, widgets: /\bwidgets?\b|home screen/i, onboarding: /onboarding|assessment|personalized plan|initial quiz/i,
+  reminders: /remind|notifications?|alerts/i, progress: /progress|goal track|milestone/i, social: /friends?|communit|share|social|leaderboard/i,
+  gamification: /badge|reward|achievement|points/i, insights: /insight|analytic|statistic|graphs|trends/i, focus: /timer|focus|meditat/i,
+  logging: /\blog\b|logging|journal|diary|record/i, personalization: /personali|customiz|recommend|tailor/i,
+  offline: /offline|without internet/i, search: /search|filter/i, sync: /sync|icloud|across.*devices/i, subscriptions: /subscription|premium|membership/i,
+};
