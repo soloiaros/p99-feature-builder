@@ -55,3 +55,13 @@ describe('end-to-end API without a provider key', () => {
     const malformed = new Request(`${origin}/api/analyze`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{broken' });
     expect((await handleRequest(malformed, {})).status).toBe(400);
   });
+  it('does not trust forged client evidence or app references in bundles', async () => {
+    const analysis = await analyze({ input, profile }, {});
+    const matched = await matchFeatures(analysis.project, analysis.features, {});
+    const match = matched.matches[0];
+    const forged = { ...match, reason: 'HACKED', evidence: [{ statement: 'HACKED' }], stats: [{ value: '$999m' }], app: { ...match.app, sources: [{ label: 'Bad source', url: 'http://localhost:1234', accessedAt: '2026' }] } };
+    const brief = await (await handleRequest(post('/api/brief', { project: analysis.project, match: forged }), {})).json() as BriefResponse;
+    expect(brief.markdown).not.toContain('HACKED');
+    expect(brief.files.find((file: { name: string }) => file.name === 'sources.json')!.content).not.toContain('$999m');
+    expect((await handleRequest(post('/api/brief', { project: analysis.project, match: { ...match, app: { id: '999999999999' } } }), {})).status).toBe(422);
+  });
