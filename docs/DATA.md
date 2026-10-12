@@ -17,7 +17,9 @@ Strong demo references include Streaks (streaks, widgets, reminders), Waterllama
 
 ## Refreshing
 
-Run `node scripts/seed-catalog.mjs` with Node 20 or newer. It fetches 30 category chart feeds and then batches Lookup requests at 200 IDs or fewer. It spaces requests, retries transient errors, and preserves the existing catalog if a refresh cannot meet the requested size. Set `CATALOG_LIMIT` to change the sample size (18–3,000; availability depends on deduplication across the selected charts).
+Run `node scripts/seed-catalog.mjs` with Node 20 or newer. It fetches 30 category chart feeds and then batches Lookup requests at 200 IDs or fewer. It spaces requests, retries transient errors, and preserves the existing catalog if a refresh cannot meet the requested size. Set `CATALOG_LIMIT` to change the sample size (18–3,000; availability depends on deduplication across the selected charts). That command rebuilds the sample. It does not keep apps the weekly job has appended past the limit.
+
+`.github/workflows/catalog-charts.yml` runs every Monday, and can be started by hand. It reads the free, paid, and grossing charts for the original ten categories plus Business, Utilities, Sports, Reference, News, Navigation, Games, Entertainment, Books, Medical, Shopping, Developer Tools, Graphics & Design, and the store-wide charts. It looks up only track ids that are absent from `data/catalog.json`, and it also skips a listing whose bundle id is already stored. Each run adds at most 80 apps (`CATALOG_ADD`) and stops at 3,000 (`CATALOG_MAX`). When it finds any, it opens a pull request. Merging that pull request updates the repo. The deployed site still serves the catalog from the last deploy.
 
 Run `node scripts/seed-catalog.mjs --from data/catalog.json` to reapply the feature rules to an existing snapshot with no network calls. The site reads the bundled snapshot at runtime: this script is a maintenance command, and no laptop process, scraper server, or local database is required to serve the deployed application.
 

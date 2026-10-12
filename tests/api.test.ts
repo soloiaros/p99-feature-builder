@@ -18,7 +18,7 @@ const input = 'A private daily journal with mood tracking, guided reflection pro
 describe('end-to-end API without a provider key', () => {
   it('returns actual snapshot counts, editable features, evidence, and a complete original bundle', async () => {
     const health = await (await handleRequest(new Request(`${origin}/api/health`), {})).json() as HealthResponse;
-    expect(health.catalogCount).toBe(1000);
+    expect(health.catalogCount).toBe(apps.length);
     expect(health.mode).toBe('local');
     const analysis = await (await handleRequest(post('/api/analyze', { input, profile }), {})).json() as AnalyzeResponse;
     expect(analysis.features.map((feature: { id: string }) => feature.id)).toEqual(expect.arrayContaining(['logging', 'search', 'reminders']));

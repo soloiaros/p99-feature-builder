@@ -1,0 +1,43 @@
+name: Add App Store chart apps
+
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: catalog-charts
+  cancel-in-progress: false
+
+jobs:
+  append:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Append chart apps that are not already stored
+        id: append
+        run: node scripts/append-catalog.mjs
+      - name: Open a pull request
+        if: steps.append.outputs.added != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ADDED: ${{ steps.append.outputs.added }}
+          SAMPLE: ${{ steps.append.outputs.sample }}
+        run: |
+          branch="catalog/charts-${{ github.run_id }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add data/catalog.json
+          git commit -m "Add ${ADDED} apps from the App Store top charts."
+          git push -u origin "$branch"
+          body="$(printf 'Adds %s US App Store apps from the current top charts. Each one has a track id and bundle id that were not already in data/catalog.json.\n\nExamples: %s\n\nThe live site keeps serving the catalog bundled at the last deploy. Merge this pull request, then deploy, when these apps should be searchable.\n' "$ADDED" "$SAMPLE")"
+          gh pr create --title "Add ${ADDED} apps from the App Store top charts" --body "$body"

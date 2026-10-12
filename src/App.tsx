@@ -189,7 +189,7 @@ export default function App() {
       <main inert={!!modal}>
         <AnimatePresence initial={false}>
           {stage === 'home' && <motion.section key="home" className="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: .2 }}>
-            <div className="hero"><h1><s>Steal</s> reverse-engineer<br className="desktop-break" /> features from best<br className="desktop-break" /> performing competition.</h1><p className="hero-description">One app for each feature, plus a brief for your stack.</p></div>
+            <div className="hero"><h1>Reverse-engineer features from the apps that already won.</h1><p className="hero-description">One app for each feature, plus a brief for your stack.</p></div>
             <form className="search-form" onSubmit={event => { event.preventDefault(); void analyze(); }}>
               <label className="field-label" htmlFor="app-context">Your app</label>
               <motion.div className="search-box" layoutId="project-query" transition={{ type: 'spring', stiffness: 300, damping: 32 }}>

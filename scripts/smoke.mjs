@@ -10,7 +10,7 @@ async function post(path, body) {
  const response = await fetch(`${base}/api/${path}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(12000)});
  const data=await response.json(); assert.equal(response.status,200,`${path}: ${JSON.stringify(data)}`); return data;
 }
-const health=await fetch(`${base}/api/health`).then(r=>r.json());assert.equal(health.catalogCount,1000);assert.equal(health.mode,'jev');
+const health=await fetch(`${base}/api/health`).then(r=>r.json());assert.ok(health.catalogCount>=1000);assert.equal(health.mode,'jev');
 for(const {name,input,features,unmatched=[]} of cases){
  const start=performance.now();
  const analyzed=await post('analyze',{input,features,profile:{name,platform:'iOS',stack:'SwiftUI'}});
