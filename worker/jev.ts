@@ -41,3 +41,9 @@ async function sha256(value: string): Promise<string> {
 function edgeCache(): Cache | undefined {
   return typeof caches !== 'undefined' && 'default' in caches ? (caches as unknown as { default: Cache }).default : undefined;
 }
+function remember(key: string, answers: CachedDecision['answers'], expiresAt = Date.now() + MEMORY_TTL): void {
+  // FIFO eviction keeps memory bounded even when all visitors submit unique projects.
+  decisions.delete(key);
+  if (decisions.size >= MEMORY_LIMIT) decisions.delete(decisions.keys().next().value!);
+  decisions.set(key, { answers, expiresAt: Math.min(expiresAt, Date.now() + MEMORY_TTL) });
+}
