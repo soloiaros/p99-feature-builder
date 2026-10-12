@@ -72,3 +72,13 @@ describe('successful Jev decision caching', () => {
     expect((await (await import('../worker/jev')).decide({ JEV_API_KEY: 'key' }, 'state', questions, fetcher)).cached).toBe(false);
     expect(fetcher).toHaveBeenCalledTimes(3);
   });
+  it('rejects expired edge records and survives a cache outage', async () => {
+    vi.stubGlobal('caches', { default: { match: async () => new Response(JSON.stringify({ answers: { a: { noul: 0.1 } }, expiresAt: Date.now() - 1 })), put: async () => { throw new Error('cache unavailable'); } } });
+    const { decide } = await import('../worker/jev');
+    const fetcher = vi.fn(async () => success()) as unknown as typeof fetch;
+    const result = await decide({ JEV_API_KEY: 'key' }, 'state', questions, fetcher);
+    expect(result.scores?.a).toBe(0.92);
+    expect(result.reason).toBeNull();
+    expect(result.cached).toBe(false);
+  });
+});
