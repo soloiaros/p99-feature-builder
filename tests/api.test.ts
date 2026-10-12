@@ -155,3 +155,12 @@ describe('Jev contract and fallback', () => {
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('landing-page safety', () => {
+  it('blocks private, credentialed, local, literal and alternate-IP URLs', () => {
+    for (const url of ['http://example.com', 'https://127.0.0.1', 'https://2130706433', 'https://0x7f000001', 'https://[::1]', 'https://metadata.google.internal', 'https://app.local', 'https://user:pass@example.com', 'https://example.com:8080']) expect(() => validatePublicUrl(url)).toThrow();
+    expect(validatePublicUrl('https://duolingo.com/learn').hostname).toBe('duolingo.com');
+    for (const ip of ['10.0.0.1', '127.0.0.1', '169.254.169.254', '172.16.0.1', '192.168.1.1', '100.64.0.1', '::1', 'fe80::1', 'fc00::1', '2001:db8::1', '2002:7f00:1::']) expect(isPublicAddress(ip)).toBe(false);
+    expect(isPublicAddress('8.8.8.8')).toBe(true);
+    expect(isPublicAddress('2606:4700:4700::1111')).toBe(true);
+  });
