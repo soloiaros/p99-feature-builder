@@ -137,3 +137,11 @@ describe('Jev contract and fallback', () => {
     expect(decision.scores?.a).toBe(0.9);
     expect(JSON.stringify(decision)).not.toContain('secret-value');
   });
+  it('uses honest fallback on rejection or malformed provider responses', async () => {
+    const rejected = await decide({ JEV_API_KEY: 'secret' }, '', { a: { type: 'noul', instructions: '?' } }, (async () => new Response('no', { status: 401 })) as typeof fetch);
+    expect(rejected.reason).toBe('rejected');
+    const malformed = await decide({ JEV_API_KEY: 'secret' }, '', { a: { type: 'noul', instructions: '?' } }, (async () => new Response('{}')) as typeof fetch);
+    expect(malformed.scores).toBeNull();
+    const missing = await decide({}, '', {}, vi.fn() as unknown as typeof fetch);
+    expect(missing.reason).toBe('missing-key');
+  });
