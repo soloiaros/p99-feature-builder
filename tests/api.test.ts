@@ -65,3 +65,15 @@ describe('end-to-end API without a provider key', () => {
     expect(brief.files.find((file: { name: string }) => file.name === 'sources.json')!.content).not.toContain('$999m');
     expect((await handleRequest(post('/api/brief', { project: analysis.project, match: { ...match, app: { id: '999999999999' } } }), {})).status).toBe(422);
   });
+  it('invalidates cached briefs when server-side evidence changes for the same app and feature', async () => {
+    const analysis = await analyze({ input, profile: { ...profile, name: 'Evidence cache regression' } }, {});
+    const matched = await matchFeatures(analysis.project, analysis.features, {});
+    const original = matched.matches[0];
+    const first = await cachedBrief(analysis.project, original, origin);
+    expect(first.cached).toBe(false);
+    const updated = { ...original, evidence: original.evidence.map((item, index) => index === 0 ? { ...item, statement: 'Corrected publisher excerpt for the same feature.' } : item) };
+    const changed = await cachedBrief(analysis.project, updated, origin);
+    expect(changed.cached).toBe(false);
+    expect(changed.files.find((file) => file.name === 'sources.json')!.content).toContain('Corrected publisher excerpt');
+    expect((await cachedBrief(analysis.project, updated, origin)).cached).toBe(true);
+  });
