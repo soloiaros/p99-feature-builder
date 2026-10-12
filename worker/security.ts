@@ -108,3 +108,8 @@ function decodeEntities(text: string): string {
     return n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : ' ';
   });
 }
+export function pageText(html: string): { title: string; description: string } {
+  const title = decodeEntities(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.replace(/<[^>]*>/g, ' ') ?? '').replace(/\s+/g, ' ').trim().slice(0, 100);
+  const clean = html.replace(/<(script|style|noscript|svg|nav|footer|header)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ').replace(/<!--[\s\S]*?-->/g, ' ').replace(/<[^>]*>/g, ' ');
+  return { title, description: decodeEntities(clean).replace(/\s+/g, ' ').trim().slice(0, 10000) };
+}
