@@ -53,3 +53,9 @@ export function parseFeature(value: unknown): Feature {
   if (!/^[a-z0-9][a-z0-9-]{0,89}$/.test(id)) throw new ApiError(422, 'Feature ids must use lowercase letters, numbers and hyphens.');
   return { id, name, description: textField(input.description, 'Feature description', 400, name) };
 }
+export function parseFeatures(value: unknown): Feature[] {
+  if (!Array.isArray(value) || value.length < 1 || value.length > 7) throw new ApiError(422, 'Choose between 1 and 7 features.');
+  const parsed = value.map(parseFeature);
+  if (new Set(parsed.map((item) => item.id)).size !== parsed.length) throw new ApiError(422, 'Choose each feature only once.');
+  return parsed;
+}
