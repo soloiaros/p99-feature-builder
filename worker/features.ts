@@ -111,3 +111,13 @@ export const FEATURE_DEFINITIONS: FeatureDefinition[] = [
     edgeCases: ['Interrupted form, failed save, offline capture and conflict with another device.', 'Backdated entry, locale-specific decimals and changed units.', 'Accidental deletion and undo after a refresh.', 'Very long notes, empty optional fields and assistive input.'],
     acceptance: ['A failed request never shows a false success state.', 'An offline entry is visibly pending and syncs once.', 'Editing an entry updates every dependent summary.', 'Drafts survive an app restart until saved or explicitly discarded.'],
   },
+  {
+    id: 'personalization', name: 'A personal experience', description: 'Useful defaults that adapt to explicit preferences.',
+    keywords: ['personali', 'recommend', 'tailor', 'adaptive', 'custom', 'plan', 'preference'],
+    goal: 'Rank useful choices using preferences the person can inspect and change.',
+    entities: ['Preference: userId, key, value, source, updatedAt', 'Recommendation: id, userId, itemId, ruleVersion, reason, generatedAt', 'Feedback: userId, itemId, action, createdAt'],
+    flow: ['Person sets a small number of explicit preferences.', 'The app presents a short ranked set with a plain-language reason.', 'They can adjust preferences or hide an item in place.', 'Feedback changes the next recommendation and remains reversible.'],
+    rules: ['Start with deterministic scoring based on explicit preferences and available item attributes.', 'Keep a neutral default when there is no history.', 'Exclude unavailable or completed items before ranking.', 'Never infer sensitive traits or claim that an unexplained score is certainty.'],
+    edgeCases: ['Cold start, conflicting preferences and no eligible candidates.', 'Catalog changes invalidate a recommended item.', 'A hidden item reappears after a cache refresh.', 'Account reset and opt-out delete personalization history.'],
+    acceptance: ['Changing a preference changes the candidate list predictably.', 'Each recommendation has a reproducible reason.', 'A hidden item stays hidden until the person reverses that choice.', 'No-data users receive a useful neutral selection.'],
+  },
