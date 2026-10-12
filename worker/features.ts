@@ -121,3 +121,13 @@ export const FEATURE_DEFINITIONS: FeatureDefinition[] = [
     edgeCases: ['Cold start, conflicting preferences and no eligible candidates.', 'Catalog changes invalidate a recommended item.', 'A hidden item reappears after a cache refresh.', 'Account reset and opt-out delete personalization history.'],
     acceptance: ['Changing a preference changes the candidate list predictably.', 'Each recommendation has a reproducible reason.', 'A hidden item stays hidden until the person reverses that choice.', 'No-data users receive a useful neutral selection.'],
   },
+  {
+    id: 'offline', name: 'Offline resilience', description: 'Keep essential actions useful on an unreliable connection.',
+    keywords: ['offline', 'download', 'no internet', 'airplane', 'without internet'],
+    goal: 'Let people read essential content and queue safe edits while connectivity is absent.',
+    entities: ['LocalRecord: id, userId, serverVersion, data, updatedAt', 'OutboxOperation: id, userId, entityId, operation, payload, baseVersion, attemptCount, state', 'SyncCursor: userId, lastServerCursor, lastSyncedAt'],
+    flow: ['Previously loaded content is available immediately from local storage.', 'Edits update the local view and enter a durable outbox.', 'A subtle sync indicator explains pending work.', 'Connectivity resumes; operations replay safely and conflicts appear for resolution.'],
+    rules: ['Persist the local change and its outbox operation atomically.', 'Use stable client IDs and idempotency keys for replay.', 'Define per-field conflict behavior; never silently overwrite destructive changes.', 'Scope caches by user and clear protected data on logout.'],
+    edgeCases: ['App killed during queue write, repeated retries and partial server success.', 'Same entity edited on two devices or deleted remotely.', 'Storage quota reached, schema migration and corrupt cache.', 'User logs out while operations remain queued.'],
+    acceptance: ['An offline edit survives a process restart.', 'Replaying an operation twice changes server state once.', 'A conflict preserves both versions until resolved.', 'One account never sees another account’s cache.'],
+  },
