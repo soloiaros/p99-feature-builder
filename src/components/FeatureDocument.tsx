@@ -71,3 +71,24 @@ function flowNodes(source: string): { id: string; label: string; decision: boole
   }
   return [...nodes.values()].slice(0, 16);
 }
+
+function FlowDiagram({ source }: { source: string }) {
+  const nodes = useMemo(() => flowNodes(source), [source]);
+  const recovery = nodes.find((node) => node.id === 'R');
+  const mainNodes = nodes.filter((node) => node.id !== 'R');
+  if (!mainNodes.length) return <pre className="document-code"><code>{source}</code></pre>;
+  return (
+    <figure className="document-flow">
+      <figcaption>How it flows</figcaption>
+      <ol aria-label="Feature flow">
+        {mainNodes.map((node, index) => (
+          <li key={node.id} className={node.decision ? 'document-flow-decision' : undefined}>
+            <span className="document-flow-number">{String(index + 1).padStart(2, '0')}</span>
+            <span>{node.label}{node.decision && recovery && <small>If it needs attention: {recovery.label}. Then try the action again.</small>}</span>
+            {index < mainNodes.length - 1 && <ArrowDown size={14} className="document-flow-arrow" aria-hidden="true" />}
+          </li>
+        ))}
+      </ol>
+    </figure>
+  );
+}
