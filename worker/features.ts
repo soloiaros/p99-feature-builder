@@ -101,3 +101,13 @@ export const FEATURE_DEFINITIONS: FeatureDefinition[] = [
     edgeCases: ['App suspended, closed or device restarted during a session.', 'System clock jumps, pause across midnight and two tabs operating the same session.', 'Notification denied and sound disabled.', 'User switches account with an active session.'],
     acceptance: ['After a background pause, the countdown matches the stored end time.', 'Pause and resume preserve remaining duration.', 'Finishing twice creates one summary.', 'Keyboard and screen readers can operate every timer control.'],
   },
+  {
+    id: 'logging', name: 'Frictionless logging', description: 'Capture a meaningful entry before the moment passes.',
+    keywords: ['log', 'journal', 'diary', 'record', 'entry', 'mood', 'nutrition', 'calorie', 'expense'],
+    goal: 'Capture the minimum useful record quickly and make corrections easy.',
+    entities: ['Entry: id, userId, categoryId, value?, unit?, note?, occurredAt, createdAt, updatedAt, version', 'EntryDraft: localId, fields, updatedAt', 'EntryChange: entryId, previousVersion, changedFields, changedAt'],
+    flow: ['A prominent add action opens a short form with sensible defaults.', 'Person records the essential value and optional context.', 'Save persists locally or remotely and confirms the actual sync state.', 'Recent entries support edit, delete with undo and filtering.'],
+    rules: ['Autosave unfinished drafts without silently treating them as completed entries.', 'Validate units, plausible bounds and timestamps at both client and server boundaries.', 'Preserve an idempotency key across retries.', 'Store sensitive notes privately and keep them out of analytics.'],
+    edgeCases: ['Interrupted form, failed save, offline capture and conflict with another device.', 'Backdated entry, locale-specific decimals and changed units.', 'Accidental deletion and undo after a refresh.', 'Very long notes, empty optional fields and assistive input.'],
+    acceptance: ['A failed request never shows a false success state.', 'An offline entry is visibly pending and syncs once.', 'Editing an entry updates every dependent summary.', 'Drafts survive an app restart until saved or explicitly discarded.'],
+  },
