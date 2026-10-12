@@ -58,3 +58,15 @@ const evidenceTerms: Record<string, RegExp> = {
   logging: /\blog\b|logging|journal|diary|record/i, personalization: /personali|customiz|recommend|tailor/i,
   offline: /offline|without internet/i, search: /search|filter/i, sync: /sync|icloud|across.*devices/i, subscriptions: /subscription|premium|membership/i,
 };
+// Parse the immutable listing snapshot once, rather than re-splitting every app per selected tag.
+const evidenceLines = new Map(apps.map((app) => {
+  const brand = app.name.split(':')[0].trim();
+  const brandPattern = brand.length >= 3 ? new RegExp(`\\b${brand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'g') : null;
+  const lines = app.description.split(/\n|(?<=[.!?])\s+/).map((line) => line.trim()).filter((line) => line.length >= 24 && line.length <= 500).map((line) => ({
+    line,
+    // Exact proper-name mentions are not feature evidence (e.g. "other Streaks users").
+    featureText: brandPattern ? line.replace(brandPattern, '') : line,
+    quality: (/^[•*\-]/.test(line) ? 3 : 0) + (line.length >= 45 && line.length < 240 ? 2 : 0) + (/\byour?\b/.test(line) ? 1 : 0) - (/privacy|terms|copyright|trademark|subscription.*renew|policy|reviews|said|saying/i.test(line) ? 6 : 0),
+  }));
+  return [app.trackId, lines];
+}));
