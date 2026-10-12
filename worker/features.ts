@@ -71,3 +71,13 @@ export const FEATURE_DEFINITIONS: FeatureDefinition[] = [
     edgeCases: ['Invitation reused, expired or opened after circle deletion.', 'Member removed while composing a reaction or reading a cached feed.', 'Blocked member, report processing and malicious text.', 'Account deletion removes identifying feed content or anonymizes it under an explicit policy.'],
     acceptance: ['A nonmember cannot retrieve circle data even with a guessed ID.', 'A blocked user cannot interact with the blocker.', 'Leaving a circle immediately prevents future access.', 'Sharing is off until a person opts in.'],
   },
+  {
+    id: 'gamification', name: 'Meaningful achievements', description: 'Celebrate real effort with milestones people can understand.',
+    keywords: ['badge', 'reward', 'achievement', 'xp', 'level', 'gamif', 'challenge', 'point'],
+    goal: 'Recognize useful actions with transparent milestones without making points the product’s purpose.',
+    entities: ['AchievementDefinition: id, version, criteria, displayName, threshold', 'AchievementAward: id, userId, achievementId, earnedAt, sourceEventId', 'RewardLedger: id, userId, delta, reason, sourceEventId'],
+    flow: ['A person sees one achievable next milestone.', 'Completing a qualifying action evaluates eligible achievement rules.', 'A brief, dismissible celebration explains the specific effort recognized.', 'Achievement history shows earned milestones and clear next steps.'],
+    rules: ['Award only for actions that deliver user value; do not reward notification opens or excessive screen time.', 'Evaluate rules idempotently using source event IDs.', 'Explain thresholds in plain language and version rule changes.', 'Keep celebrations optional and respect reduced-motion preferences.'],
+    edgeCases: ['Duplicate completion, retroactive activity correction and revoked awards.', 'Rule migration changes thresholds for existing users.', 'Offline action reaches two milestones at once.', 'Large points totals and translation expansion.'],
+    acceptance: ['Replaying an activity event never awards points twice.', 'Each award can be traced to a qualifying event.', 'Reduced motion shows a static acknowledgement.', 'The product remains fully usable with celebrations disabled.'],
+  },
