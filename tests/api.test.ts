@@ -110,3 +110,10 @@ describe('matching relevance', () => {
     const matched = await matchFeatures(result.project, result.features, {});
     expect(matched.matches.filter((match) => !/workout|fitness|hevy|strong|fitbod|strength|training|gym|strava/i.test(`${match.app.name} ${match.app.description}`)).map((match) => `${match.feature.id}: ${match.app.name}`)).toEqual([]);
   });
+  it('handles a custom feature through evidence instead of returning an invented app', async () => {
+    const analysis = await analyze({ input, profile }, {});
+    const matched = await matchFeatures(analysis.project, [{ id: 'voice-capture', name: 'Voice recording', description: 'Record a voice note in a journal' }], {});
+    expect(matched.matches.length).toBeGreaterThan(0);
+    expect(apps.some((app) => String(app.trackId) === matched.matches[0].app.id)).toBe(true);
+  });
+});
