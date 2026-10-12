@@ -9,3 +9,8 @@ export interface CatalogApp {
   charts: { rank: number; chart: string; category: string; country: string; sourceUrl: string; capturedAt: string }[];
   features: { id: string; evidence: string; confidence: string; sourceUrl: string; method: string; tier: string }[];
 }
+export const apps = snapshot.apps as CatalogApp[];
+export const capturedAt = snapshot.capturedAt;
+export const appById = new Map(apps.map((app) => [String(app.trackId), app]));
+export const enrichedCount = apps.filter((app) => app.features.length > 0).length;
+const searchable = new Map(apps.map((app) => [app.trackId, { description: app.description.toLowerCase(), name: app.name.toLowerCase(), context: `${app.name} ${app.primaryGenre} ${app.description.slice(0, 2200)}`.toLowerCase() }]));
