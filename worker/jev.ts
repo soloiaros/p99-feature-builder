@@ -33,3 +33,11 @@ const EDGE_TTL = 6 * 60 * 60 * 1000;
 const MEMORY_LIMIT = 128;
 interface CachedDecision { answers: Record<string, { noul: number }>; expiresAt: number }
 const decisions = new Map<string, CachedDecision>();
+
+async function sha256(value: string): Promise<string> {
+  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(bytes), (part) => part.toString(16).padStart(2, '0')).join('');
+}
+function edgeCache(): Cache | undefined {
+  return typeof caches !== 'undefined' && 'default' in caches ? (caches as unknown as { default: Cache }).default : undefined;
+}
