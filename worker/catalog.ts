@@ -89,3 +89,9 @@ function customEvidenceTerms(feature: Feature): string[] {
   const distinctive = terms.filter((term) => !genericCustomTerms.has(term));
   return distinctive.length ? distinctive : terms;
 }
+function supportsCustomFeature(line: string, terms: string[]): boolean {
+  if (!terms.length) return false;
+  const present = new Set(normalizedTerms(line));
+  // Context can rank candidates, but cannot qualify an unrelated custom feature.
+  return terms.every((term) => present.has(term));
+}
