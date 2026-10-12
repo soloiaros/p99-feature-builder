@@ -15,3 +15,66 @@ function stackGuidance(project: Project, feature: Feature): string {
   if (stack.includes('react native') || stack.includes('expo')) return `${shared}\n\nFor React Native: use TypeScript domain models, a focused feature hook or the existing store, and a repository that wraps the current storage layer. Respect AppState transitions and cancel stale requests when screens unmount. Use platform adapters for notification, widget or purchase functionality. If Expo is present, distinguish Expo Go support from capabilities that require a development build. Honor font scaling, accessibilityLabel, safe areas and reduced-motion preferences.`;
   return `${shared}\n\nFor React/Web: use typed components with a small reducer or existing query cache for remote state. Abort superseded fetches and represent pending writes explicitly. Use semantic forms and buttons, visible focus, keyboard navigation and live regions for asynchronous outcomes. Keep durable state in the existing backend and scoped local drafts where useful. The deployment must run on the project’s hosted runtime; do not add a production dependency on a localhost process.`;
 }
+
+export function generateWireframe(project: Project, feature: Feature): string {
+  const definition = featureDefinition(feature);
+  const clean = (value: string) => value.replace(/[\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim();
+  const short = (value: string, length: number) => {
+    const text = clean(value);
+    return text.length > length ? `${text.slice(0, length - 1).trimEnd()}…` : text;
+  };
+  const wrap = (value: string, width = 39, maxLines = 3) => {
+    const words = clean(value).match(new RegExp(`.{1,${width}}(?:\\s|$)|.{${width}}`, 'g')) ?? [''];
+    const lines = words.slice(0, maxLines).map((line) => line.trim());
+    if (words.length > maxLines) lines[maxLines - 1] = short(`${lines[maxLines - 1]} …`, width);
+    return lines;
+  };
+  const text = (value: string, x: number, y: number, size = 13, color = '#646464', weight = 400) => `<text x="${x}" y="${y}" font-size="${size}" fill="${color}" font-weight="${weight}">${xml(clean(value))}</text>`;
+  const multiline = (value: string, x: number, y: number, width = 39, lines = 3) => wrap(value, width, lines).map((line, i) => text(line, x, y + i * 18)).join('');
+  const configs: Record<string, [string[], string[]]> = {
+    streaks: [['Today’s intention', 'Record a completion', 'Keep the long view'], ['Complete today', 'Confirm completion', 'Back to today']],
+    widgets: [['Choose a glance', 'Preview your widget', 'The next useful action'], ['Choose this view', 'Add widget', 'Open in the app']],
+    onboarding: [['What matters to you?', 'Make it your own', 'Your first step'], ['Continue', 'Preview my setup', 'Start my first action']],
+    reminders: [['Choose your timing', 'A nudge with context', 'Stay in control'], ['Set a reminder', 'Open today’s action', 'Save preferences']],
+    progress: [['Choose a goal', 'A little further', 'See your journey'], ['Set this goal', 'Record progress', 'View activity history']],
+    social: [['Your private circle', 'Choose what to share', 'Encourage each other'], ['Invite someone', 'Confirm sharing', 'Send encouragement']],
+    gamification: [['Your next milestone', 'Progress recognized', 'Keep exploring'], ['Take the next step', 'Continue', 'View achievements']],
+    insights: [['Choose a time range', 'See the pattern', 'Inspect the details'], ['View this week', 'Explore this pattern', 'View source entries']],
+    focus: [['Make room to focus', 'One thing at a time', 'A session well spent'], ['Start focus session', 'Pause session', 'Take a break']],
+    logging: [['A moment to record', 'Capture the details', 'Your recent entries'], ['Create an entry', 'Save entry', 'View or edit entry']],
+    personalization: [['Tell us what fits', 'Your next suggestion', 'Tune your preferences'], ['Save preferences', 'Try this suggestion', 'Update my choices']],
+    offline: [['Your saved content', 'Keep going offline', 'Changes reconciled'], ['Save for offline', 'Keep this draft', 'Review synced changes']],
+    search: [['Find what you saved', 'Matches with context', 'Back to your results'], ['Search entries', 'Open this result', 'Refine search']],
+    sync: [['Across your devices', 'A change to sync', 'One consistent history'], ['Enable sync', 'Save this change', 'View synced history']],
+    subscriptions: [['Choose what you need', 'Review before paying', 'Your access, clearly'], ['Review this plan', 'Continue to checkout', 'Manage subscription']],
+  };
+  const [titles, actions] = configs[feature.id] ?? [[short(feature.name, 23), 'Make your change', 'Review the outcome'], ['Get started', 'Confirm action', 'Review changes']];
+  const stages = [0, 1, Math.max(2, definition.flow.length - 1)];
+  const rows = (items: string[], selected = -1) => items.map((item, i) => `<rect x="38" y="${144 + i * 41}" width="228" height="33" rx="7" fill="#fff" stroke="${selected === i ? '#565656' : '#dedede'}"/><circle cx="54" cy="${160 + i * 41}" r="4" fill="${selected === i ? '#424242' : '#dedede'}"/>${text(short(item, 26), 68, 165 + i * 41, 12, '#505050')}`).join('');
+  const mini = (i: number) => {
+    if (feature.id === 'streaks') return `${text(i === 0 ? '6 days' : '7 days', 42, 183, 32, '#292929', 600)}${text(i === 2 ? 'Longest run stays with you' : 'One meaningful action each day', 42, 208, 12)}${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, n) => `<circle cx="${53 + n * 32}" cy="240" r="11" fill="${n < (i === 0 ? 6 : 7) ? '#424242' : '#e3e3e3'}"/>${text(day, 49 + n * 32, 267, 11)}${n < (i === 0 ? 6 : 7) ? `<path d="M${48 + n * 32} 240l3 3 6-7" stroke="#fff" fill="none" stroke-width="1.8"/>` : ''}`).join('')}`;
+    if (feature.id === 'widgets') return `<rect x="42" y="148" width="220" height="125" rx="18" fill="#fff" stroke="#d9d9d9"/>${text(i === 2 ? 'Your next action' : 'Today, at a glance', 58, 174, 13, '#333', 600)}${text('A small moment for your goal', 58, 196, 11)}<circle cx="83" cy="231" r="19" fill="none" stroke="#e3e3e3" stroke-width="5"/><path d="M83 212a19 19 0 0 1 19 19" fill="none" stroke="#555" stroke-width="5"/>${text(i === 1 ? 'Small / medium' : 'Updated just now', 117, 236, 12)}`;
+    if (feature.id === 'focus') return `${text(i === 0 ? '25:00' : i === 1 ? '18:42' : '25 min', 76, 204, 43, '#333', 500)}${text(i === 2 ? 'Focus time recorded' : 'One task. Room to think.', 74, 236, 12)}<path d="M55 263h194" stroke="#ddd" stroke-width="4" stroke-linecap="round"/><path d="M55 263h${i === 0 ? 0 : i === 1 ? 65 : 194}" stroke="#555" stroke-width="4" stroke-linecap="round"/>`;
+    if (feature.id === 'progress' || feature.id === 'insights') return `${text(feature.id === 'insights' ? 'This week / activity' : i === 0 ? 'Your weekly goal' : 'Progress toward your goal', 42, 157, 12, '#4b4b4b', 500)}<path d="M43 253h219" stroke="#d9d9d9"/>${[42, 59, 48, 82, 73, 104, 118].map((height, n) => `<rect x="${45 + n * 31}" y="${250 - height * (i === 0 ? 0.7 : 1)}" width="19" height="${height * (i === 0 ? 0.7 : 1)}" rx="4" fill="${n === 6 ? '#555' : '#d7d7d7'}"/>`).join('')}${text('M       T       W       T       F       S       S', 46, 274, 11)}`;
+    if (feature.id === 'reminders') return `${text(i === 1 ? 'A moment for your goal' : 'A time that works for you', 42, 159, 13, '#444', 500)}${text('09:00', 77, 214, 39, '#333', 500)}${text(i === 1 ? 'Open, snooze, or dismiss' : 'Weekdays · your local time', 65, 243, 12)}${text(i === 2 ? 'Pause anytime in settings' : 'Only when you choose', 69, 270, 11)}`;
+    if (feature.id === 'gamification') return `<circle cx="152" cy="195" r="44" fill="#fff" stroke="#ccc"/><path d="M152 166l9 18 20 3-15 14 4 20-18-9-18 9 4-20-15-14 20-3z" fill="${i === 0 ? '#e3e3e3' : '#626262'}"/>${text(i === 0 ? 'One more meaningful step' : 'A milestone worth keeping', 68, 262, 12)}`;
+    if (feature.id === 'social') return `${[0, 1, 2].map((n) => `<circle cx="${112 + n * 40}" cy="170" r="24" fill="${['#dedede', '#ccc', '#eee'][n]}" stroke="#f6f6f6" stroke-width="3"/>${text(['A', 'J', 'M'][n], 108 + n * 40, 175, 13, '#555', 500)}`).join('')}${text(i === 0 ? 'Invite a small circle' : i === 1 ? 'Share only what you choose' : 'A friend completed their goal', 55, 224, 13)}${text('Private by default', 95, 258, 12)}`;
+    if (feature.id === 'logging') return rows(i === 2 ? ['Today · a moment captured', 'Yesterday · an earlier entry', 'Edit an entry at any time'] : i === 1 ? ['How are you feeling?', 'Add a short reflection…', 'Today · date can be changed'] : ['A thought worth keeping', 'A feeling to check in with', 'A quick, private note'], i === 0 ? 0 : -1);
+    if (feature.id === 'search') return rows(i === 0 ? ['Search your entries…', 'Filter by date or tag', 'Recent searches'] : ['Matching words in context', 'A date and a useful excerpt', i === 2 ? 'Your query is preserved' : 'Only your permitted entries'], i === 1 ? 0 : -1);
+    if (feature.id === 'onboarding') return rows(i === 0 ? ['Build a regular practice', 'Explore at my own pace', 'Choose later'] : i === 1 ? ['A little time each day', 'A few times a week', 'Keep it flexible'] : ['Your starting point', 'Why this was suggested', 'Edit before you begin'], 0);
+    if (feature.id === 'personalization') return rows(i === 0 ? ['Choose an interest', 'Choose your pace', 'Skip optional preferences'] : i === 1 ? ['A suggestion that fits', 'Based on your choices', 'Hide or adjust suggestion'] : ['Your interests', 'Your pace', 'Reset to a neutral starting point'], 0);
+    if (feature.id === 'offline' || feature.id === 'sync') return rows(i === 0 ? ['Available on this device', 'Last updated just now', 'Your account only'] : i === 1 ? ['Draft saved on this device', 'Waiting for a connection', 'Keep working safely'] : ['Changes saved and synced', 'No duplicate entries', 'Review any conflicts'], i === 2 ? 0 : 1);
+    if (feature.id === 'subscriptions') return rows(i === 0 ? ['Keep using the free plan', 'Explore premium benefits', 'Restore a previous purchase'] : i === 1 ? ['Price from your app store', 'Renewal terms before purchase', 'Cancel or continue'] : ['Current plan and renewal', 'Restore purchases', 'Manage in your app store'], i === 0 ? 0 : -1);
+    return rows(['Review the current state', 'Make one clear change', 'Keep an editable history'], i);
+  };
+  const name = short(project.name, 34);
+  const title = short(feature.name, 35);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="670" viewBox="0 0 1120 670" role="img" aria-labelledby="title desc">
+<title id="title">${xml(title)}: original wireframe for ${xml(name)}</title><desc id="desc">Three original conceptual screens for ${xml(clean(feature.name))}. Flow annotations are drawn from the implementation brief. Illustrative content, not a reference app screenshot.</desc>
+<rect width="1120" height="670" fill="#fafafa"/><g font-family="Arial,Helvetica,sans-serif">
+${text(`${name} / ${title}`, 48, 46, 22, '#252525', 600)}${text('Original interface study · adapt these states to your existing design system', 48, 72, 13)}
+${titles.map((heading, i) => `<g transform="translate(${48 + i * 360},104)">${text(`0${i + 1} / ${heading}`, 0, 8, 12, '#646464', 500)}<rect y="25" width="304" height="365" rx="22" fill="#fff" stroke="#d8d8d8"/><rect x="115" y="38" width="74" height="4" rx="2" fill="#e5e5e5"/>${text(short(heading, 26), 24, 87, 20, '#2d2d2d', 600)}${text(short(feature.name, 38), 24, 112, 12)}<rect x="24" y="130" width="256" height="157" rx="12" fill="#f6f6f6"/>${mini(i)}<rect x="24" y="315" width="256" height="49" rx="10" fill="#303030"/>${text(short(actions[i], 31), 42, 345, 13, '#fff', 500)}${multiline(definition.flow[stages[i]] ?? definition.flow[0], 0, 420, 39, 3)}</g>`).join('')}
+<path d="M366 298h22m-6-5 6 5-6 5M726 298h22m-6-5 6 5-6 5" stroke="#aaa" fill="none" stroke-width="1.5"/>
+${text('Implementation guardrail', 48, 610, 12, '#333', 600)}${multiline(definition.rules[0], 48, 633, 143, 2)}
+</g></svg>`;
+}
