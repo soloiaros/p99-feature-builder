@@ -117,3 +117,10 @@ describe('matching relevance', () => {
     expect(apps.some((app) => String(app.trackId) === matched.matches[0].app.id)).toBe(true);
   });
 });
+
+describe('Jev contract and fallback', () => {
+  it('only accepts complete bounded numeric Noul answers', () => {
+    expect(parseNoulAnswers({ answers: { a: { noul: 0.7 } } }, ['a'])).toEqual({ a: 0.7 });
+    expect(parseNoulAnswers({ answers: { a: { noul: 0.7 } } }, ['a', 'b'])).toBeNull();
+    for (const bad of ['0.9', 1.1, -1, null, NaN]) expect(parseNoulAnswers({ answers: { a: { noul: bad } } }, ['a'])).toBeNull();
+  });
