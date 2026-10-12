@@ -106,3 +106,22 @@ export interface BriefResponse {
   cached: boolean;
 }
 export interface BriefRequest { project: Project; match: FeatureMatch }
+
+export interface CatalogResponse {
+  apps: AppSummary[];
+  total: number;
+  enrichedCount: number;
+  updatedAt: string;
+  categories: string[];
+  features: Feature[];
+}
+
+export interface HealthResponse {
+  status: 'ok';
+  mode: EngineMode;
+  provider: 'TypeSafe' | 'OpenRouter' | 'Local feature engine';
+  catalogCount: number;
+  enrichedCount: number;
+  catalogUpdatedAt: string;
+  briefMode: 'template';
+}
