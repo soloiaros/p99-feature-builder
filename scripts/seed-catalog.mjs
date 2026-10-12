@@ -29,3 +29,21 @@ const featurePatterns = [
   ['sync', /\b(syncs?|synchroni[sz]\w*|real.time updates between devices)\b/i],
   ['subscriptions', /\b(subscriptions?|monthly.*annual|premium.*plan)\b/i],
 ];
+
+// A match is an auditable retrieval hint, never independent proof of product quality.
+function enrich(app) {
+  const text = app.description || '';
+  const features = [];
+  for (const [id, pattern] of featurePatterns) {
+    const match = pattern.exec(text);
+    if (!match) continue;
+    const matchAt = match.index;
+    const previousBreak = Math.max(text.lastIndexOf('\n', matchAt), text.lastIndexOf('. ', matchAt));
+    const start = Math.max(previousBreak < 0 ? 0 : previousBreak + 1, matchAt - 150);
+    const nextBreaks = [text.indexOf('\n', matchAt + match[0].length), text.indexOf('. ', matchAt + match[0].length)].filter(x => x >= 0);
+    const end = Math.min(nextBreaks.length ? Math.min(...nextBreaks) + 1 : text.length, matchAt + match[0].length + 250);
+    features.push({ id, evidence: text.slice(start, end).trim(), confidence: 'medium',
+      sourceUrl: app.metadataSource, method: 'description-keyword-v1', tier: 'estimated' });
+  }
+  return { ...app, features };
+}
