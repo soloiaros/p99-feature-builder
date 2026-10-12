@@ -55,3 +55,14 @@ export interface Evidence {
   kind: 'publisher-description' | 'market-signal' | 'inference';
   asOf: string;
 }
+
+export interface FeatureMatch {
+  id: string;
+  feature: Feature;
+  app: AppSummary;
+  reason: string;
+  evidence: Evidence[];
+  confidence: 'high' | 'medium' | 'low';
+  confidenceDetail: string;
+  stats: Metric[];
+}
