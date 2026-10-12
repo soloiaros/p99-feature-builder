@@ -102,3 +102,11 @@ describe('matching relevance', () => {
     expect(fetcher).toHaveBeenCalledTimes(2);
     expect(matched.matches.every((match) => ids.includes(match.app.id))).toBe(true);
   });
+  it('keeps explicit fitness features ahead of generic inferred ones', async () => {
+    const fitness = 'A strength training app with personalized workout plans, workout logging, progress charts, and shared challenges with friends.';
+    const { features } = lexicalFeatures(fitness);
+    expect(features.map((feature) => feature.id)).toEqual(expect.arrayContaining(['logging', 'progress', 'insights', 'social', 'personalization']));
+    const result = await analyze({ input: fitness, profile }, {});
+    const matched = await matchFeatures(result.project, result.features, {});
+    expect(matched.matches.filter((match) => !/workout|fitness|hevy|strong|fitbod|strength|training|gym|strava/i.test(`${match.app.name} ${match.app.description}`)).map((match) => `${match.feature.id}: ${match.app.name}`)).toEqual([]);
+  });
