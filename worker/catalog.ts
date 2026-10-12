@@ -140,3 +140,21 @@ export function shortlist(feature: Feature, description: string, limit = 4): Can
     return { app, localScore: fit + domainScore + Math.min(contextHits, 10) * 1.5 + Math.min(Math.log10((app.ratingCount ?? 0) + 1), 7) * 0.8 + (app.rating ?? 0) * 0.5, excerpt: line.slice(0, 330), explicit: !!hint, fit };
   }).filter((item) => item.fit > 0 && item.excerpt).sort((a, b) => b.localScore - a.localScore).slice(0, limit);
 }
+
+export function createMatch(feature: Feature, candidate: Candidate, jevScore?: number): FeatureMatch {
+  const app = candidate.app;
+  const evidence: Evidence[] = [{
+    statement: `Publisher listing mentions: “${candidate.excerpt}”`, sourceUrl: app.metadataSource,
+    sourceLabel: 'Apple listing · publisher claim', confidence: candidate.explicit ? 'medium' : 'low', kind: 'publisher-description', asOf: app.metadataFetchedAt,
+  }];
+  if (app.rating !== null && app.ratingCount !== null) evidence.push({
+    statement: `${app.rating.toFixed(1)} / 5 from ${app.ratingCount.toLocaleString('en-US')} US ratings is an app-level adoption signal; it does not isolate this feature’s quality.`,
+    sourceUrl: app.metadataSource, sourceLabel: 'Apple App Store aggregate', confidence: 'high', kind: 'market-signal', asOf: app.metadataFetchedAt,
+  });
+  const confidence = jevScore !== undefined && jevScore >= 0.8 && candidate.explicit ? 'high' : candidate.explicit ? 'medium' : 'low';
+  return {
+    id: `${feature.id}:${app.trackId}`, feature, app: summarizeApp(app), stats: appMetrics(app), evidence, confidence,
+    reason: `Study ${app.name.split(':')[0]} for ${feature.name.toLowerCase()}: its listing contains a related feature signal, and its App Store record gives you dated market context to inspect. Confirm the behavior in the app before treating it as a proven design.`,
+    confidenceDetail: jevScore !== undefined ? `Jev feature-fit score: ${Math.round(jevScore * 100)}%. This is a model judgment of textual fit, not proof of feature quality or commercial causation.` : 'Local keyword match against the publisher description. Feature quality has not been independently tested.',
+  };
+}
