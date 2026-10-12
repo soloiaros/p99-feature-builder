@@ -46,3 +46,12 @@ export interface AppSummary {
   stats: Metric[];
   sources: Source[];
 }
+
+export interface Evidence {
+  statement: string;
+  sourceUrl: string;
+  sourceLabel: string;
+  confidence: 'high' | 'medium' | 'low';
+  kind: 'publisher-description' | 'market-signal' | 'inference';
+  asOf: string;
+}
