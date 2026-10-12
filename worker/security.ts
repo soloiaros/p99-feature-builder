@@ -59,3 +59,17 @@ export function parseFeatures(value: unknown): Feature[] {
   if (new Set(parsed.map((item) => item.id)).size !== parsed.length) throw new ApiError(422, 'Choose each feature only once.');
   return parsed;
 }
+
+// Reject all literal IP URLs; URL normalizes unusual IPv4 spellings before this check.
+export function validatePublicUrl(input: string): URL {
+  let url: URL;
+  try { url = new URL(input); } catch { throw new ApiError(422, 'Enter a full HTTPS landing page URL.'); }
+  const host = url.hostname.toLowerCase().replace(/\.$/, '');
+  if (url.protocol !== 'https:' || url.username || url.password || (url.port && url.port !== '443') || !host.includes('.') || host.includes(':') || /^\d+(?:\.\d+){3}$/.test(host) || /(^|\.)(localhost|local|internal|test|invalid|example|onion|home|lan)$/.test(host)) {
+    throw new ApiError(422, 'Use a public HTTPS website address without credentials or a custom port.');
+  }
+  if (host.length > 253 || !/^[a-z0-9.-]+$/.test(host) || host.split('.').some((part) => !part || part.length > 63 || part.startsWith('-') || part.endsWith('-'))) throw new ApiError(422, 'That website address is not supported.');
+  url.hostname = host;
+  url.hash = '';
+  return url;
+}
