@@ -1,0 +1,38 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "borrow-feature-engine",
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "p99.aauburn.com", "custom_domain": true }
+  ],
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-12",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "assets": {
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": [
+      "/api/*"
+    ]
+  },
+  "vars": {
+    "JEV_MODEL": "jev-latest",
+    "JEV_BASE_URL": "https://openrouter.ai/api/v1"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "ratelimits": [
+    {
+      "name": "API_RATE_LIMITER",
+      "namespace_id": "1012202601",
+      "simple": {
+        "limit": 30,
+        "period": 60
+      }
+    }
+  ],
+  "account_id": "fd75e45889c3e4480b8ccee44f51156a"
+}
