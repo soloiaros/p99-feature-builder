@@ -145,3 +145,13 @@ describe('Jev contract and fallback', () => {
     const missing = await decide({}, '', {}, vi.fn() as unknown as typeof fetch);
     expect(missing.reason).toBe('missing-key');
   });
+  it('rejects provider redirects without forwarding the bearer token', async () => {
+    const fetcher = vi.fn(async (_url: unknown, init?: RequestInit) => {
+      expect(init?.redirect).toBe('manual');
+      return new Response(null, { status: 307, headers: { location: 'https://attacker.example' } });
+    }) as unknown as typeof fetch;
+    const result = await decide({ JEV_API_KEY: 'secret' }, '', { a: { type: 'noul', instructions: '?' } }, fetcher);
+    expect(result.scores).toBeNull();
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+});
