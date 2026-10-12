@@ -149,3 +149,13 @@ svg { flex-shrink: 0; }
 .saved-list small { display: block; margin-top: 5px; color: #72717c; font-size: 12px; }
 .empty-saved { padding: 30px 0; text-align: center; }
 .toast { position: fixed; z-index: 120; bottom: 25px; left: 50%; display: flex; align-items: center; gap: 10px; max-width: calc(100% - 32px); width: max-content; border: 1px solid #fff; border-radius: 999px; padding: 13px 20px; background: #fcfdff; box-shadow: var(--control-shadow-hover), 0 8px 35px #263c5b10; color: #646672; font-size: 13px; line-height: 1.6; transform: translateX(-50%) !important; }
+@media (max-width: 900px) {
+  .site-header { padding: 0 30px; }
+  .home { padding-top: 55px; }
+  .hero h1 { font-size: 52px; }
+  .results { width: min(800px, calc(100% - 32px)); padding: 0 20px; }
+  .query-resting { width: calc(100% - 96px); }
+  .reference-main { grid-template-columns: 56px minmax(0, 1fr) 132px; gap: 16px; }
+  .reference-main > .app-icon { width: 56px; height: 56px; border-radius: 14px; }
+  .reference-evidence { margin-left: 72px; }
+}
