@@ -86,3 +86,16 @@ export function isPublicAddress(address: string): boolean {
   const [a, b, c] = chunks.map(Number);
   return !(a === 0 || a === 10 || a === 127 || a >= 224 || (a === 100 && b >= 64 && b <= 127) || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && (b === 168 || b === 0 || (b === 88 && c === 99) || (b === 2))) || (a === 198 && (b === 18 || b === 19 || (b === 51 && c === 100))) || (a === 203 && b === 0 && c === 113));
 }
+
+export async function assertPublicDns(hostname: string, fetcher: typeof fetch = fetch): Promise<void> {
+  const answers = await Promise.all(['A', 'AAAA'].map(async (type) => {
+    const dnsUrl = `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(hostname)}&type=${type}`;
+    const response = await fetcher.call(globalThis, dnsUrl, { headers: { accept: 'application/dns-json' }, redirect: 'manual', signal: AbortSignal.timeout(2500) });
+    if (!response.ok) throw new ApiError(422, 'Could not safely resolve that website. Try a description instead.');
+    const data = record(JSON.parse(await limitedText(response.body, 20000)));
+    if (data.Status !== 0) throw new ApiError(422, 'That website could not be resolved. Try a description instead.');
+    return Array.isArray(data.Answer) ? data.Answer.map(record).filter((item) => item.type === 1 || item.type === 28).map((item) => item.data) : [];
+  }));
+  const ips = answers.flat();
+  if (ips.length === 0 || ips.some((ip) => typeof ip !== 'string' || !isPublicAddress(ip))) throw new ApiError(422, 'That website does not resolve exclusively to public addresses.');
+}
