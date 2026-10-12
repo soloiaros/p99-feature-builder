@@ -76,3 +76,30 @@ async function storeDecision(key: string, scores: Record<string, number>): Promi
     }));
   } catch { /* Cache failure must never turn a valid Jev result into fallback. */ }
 }
+export async function decide(env: Env, state: unknown, questions: Record<string, { type: 'noul'; instructions: unknown }>, fetcher: typeof fetch = fetch): Promise<DecisionResult> {
+  const started = performance.now();
+  const { key, endpoint } = providerInfo(env);
+  if (!key) return { scores: null, reason: 'missing-key', durationMs: 0 };
+  try {
+    const model = env.JEV_MODEL || 'jev-latest';
+    const body = JSON.stringify({ model, state, questions });
+    const credentialFingerprint = await sha256(key);
+    const cacheKey = await sha256(JSON.stringify({ version: 1, endpoint, credentialFingerprint, body }));
+    const ids = Object.keys(questions);
+    const cached = await readDecision(cacheKey, ids);
+    if (cached) return { scores: cached, reason: null, durationMs: Math.round(performance.now() - started), cached: true };
+    const response = await fetcher.call(globalThis, endpoint, {
+      method: 'POST', headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
+      body,
+      redirect: 'manual', signal: AbortSignal.timeout(2400),
+    });
+    if (!response.ok) return { scores: null, reason: response.status === 401 || response.status === 403 ? 'rejected' : 'unavailable', durationMs: Math.round(performance.now() - started) };
+    const parsed = JSON.parse(await limitedText(response.body, 160000));
+    const scores = parseNoulAnswers(parsed, ids);
+    if (scores) await storeDecision(cacheKey, scores);
+    return { scores, reason: scores ? null : 'unavailable', durationMs: Math.round(performance.now() - started), cached: false };
+  } catch (error) {
+    console.warn('Jev request failed', error instanceof Error ? error.name : 'UnknownError');
+    return { scores: null, reason: 'unavailable', durationMs: Math.round(performance.now() - started) };
+  }
+}
