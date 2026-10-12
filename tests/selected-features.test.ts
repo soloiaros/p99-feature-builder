@@ -40,3 +40,15 @@ describe('explicit feature selection', () => {
     expect(result.project.sourceUrl).toBe('https://public.example.com/');
     expect(fetcher).toHaveBeenCalledTimes(3);
   });
+
+  it.each([
+    [], null, [widgets, widgets],
+    Array.from({ length: 8 }, (_, index) => ({ ...widgets, id: `feature-${index}` })),
+    [{ ...widgets, id: '../invalid' }], [{ ...widgets, name: 'x'.repeat(91) }],
+  ].map((features) => ({ features })))('rejects malformed selections before any network operation: $features', async ({ features }) => {
+    const fetcher = vi.fn() as unknown as typeof fetch;
+    const response = await handleRequest(request(features, 'https://public.example.com'), { JEV_API_KEY: 'validation-only' }, fetcher);
+    expect(response.status).toBe(422);
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+});
