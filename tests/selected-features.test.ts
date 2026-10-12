@@ -62,3 +62,20 @@ describe('independent feature matching', () => {
     const social = shortlist({ id: 'social', name: 'Social sharing', description: 'Share tasks with friends.' }, project.description, 1000).find((candidate) => candidate.app.trackId === 963034692);
     expect(social?.excerpt).toContain('Share your tasks');
   });
+
+  it('uses Jev to choose each best reference independently, even when the same app wins twice', async () => {
+    const first = shortlist(widgets, project.description);
+    const second = shortlist(customWidgets, project.description);
+    const shared = first.find((candidate) => second.some((other) => other.app.trackId === candidate.app.trackId));
+    expect(shared).toBeDefined();
+    const fetcher = vi.fn(async (_url: unknown, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { questions: Record<string, { instructions: { candidate: { name: string } } }> };
+      return new Response(JSON.stringify({ answers: Object.fromEntries(Object.entries(body.questions).map(([id, question]) => [id, { noul: question.instructions.candidate.name === shared!.app.name ? 0.99 : 0.5 }])) }));
+    }) as unknown as typeof fetch;
+    const result = await matchFeatures(project, [widgets, customWidgets], { JEV_API_KEY: 'independent-selected-feature-winners' }, fetcher);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(result.mode).toBe('jev');
+    expect(result.matches.map((match) => match.feature)).toEqual([widgets, customWidgets]);
+    expect(result.matches.map((match) => match.app.id)).toEqual([String(shared!.app.trackId), String(shared!.app.trackId)]);
+    expect(result.unmatchedFeatures).toEqual([]);
+  });
