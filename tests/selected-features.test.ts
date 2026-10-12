@@ -89,3 +89,8 @@ describe('independent feature matching', () => {
     expect(result.notice).toContain('Unmatched features');
     expect(shortlist(impossible, project.description)).toEqual([]);
   });
+
+  it.each(['Barcode scanning', 'Mood tracking', 'Home screen widgets'])('finds publisher evidence for a custom %s tag', (name) => {
+    const feature = { id: 'custom-example', name, description: name };
+    expect(shortlist(feature, project.description).length).toBeGreaterThan(0);
+  });
