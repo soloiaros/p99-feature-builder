@@ -299,3 +299,10 @@ function PreviewWindow({ match, brief, loading, error, onClose, onRetry, onToast
     </motion.div>
   );
 }
+
+export function FeatureDocument(props: PreviewProps) {
+  return createPortal(
+    <AnimatePresence>{props.match && <PreviewWindow key={props.match.id} {...props} match={props.match} />}</AnimatePresence>,
+    document.body,
+  );
+}
