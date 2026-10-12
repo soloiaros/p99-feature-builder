@@ -35,3 +35,16 @@ export function appMetrics(app: CatalogApp): Metric[] {
     { label: 'App age', value: Number.isFinite(years) ? years < 1 ? `${Math.max(1, Math.floor(years * 12))} mo` : `${Math.floor(years)} ${Math.floor(years) === 1 ? 'year' : 'years'}` : 'Unavailable', status: Number.isFinite(years) ? 'verified' : 'unavailable', detail: `Elapsed time since Apple’s release date (${app.releaseDate.slice(0, 10)}), measured at this snapshot.`, ...common },
   ];
 }
+export function summarizeApp(app: CatalogApp): AppSummary {
+  const sentences = app.description.split(/\n|(?<=[.!?])\s+/).map((line) => line.replace(/^[*•\-\s]+|[*\s]+$/g, '').trim());
+  const substantive = sentences.filter((line) => line.length >= 45 && !/award|featured by|winner|app of the|users are saying|what people|^https?:|^terms|^privacy|^[“"«]|join [\d+]|million (?:users|people)|#1|best .* app|world.s most|downloaded/i.test(line));
+  const functional = substantive.findIndex((line) => /\b(?:helps?|track|plan|learn|record|log|create|organize|manage|build|remind|water|habit|fitness|workout|journal|meditation|sleep|notes|tasks)\b/i.test(line));
+  const firstParagraph = (functional >= 0 ? substantive.slice(functional, functional + 2) : substantive.slice(0, 2)).join(' ') || `An app in ${app.primaryGenre}. Open its App Store listing for the publisher’s full description.`;
+  return {
+    id: String(app.trackId), name: app.name, iconUrl: app.iconUrl, category: app.primaryGenre,
+    description: firstParagraph.length > 330 ? `${firstParagraph.slice(0, 327)}…` : firstParagraph,
+    appStoreUrl: app.storeUrl, rating: app.rating, ratingCount: app.ratingCount,
+    stats: appMetrics(app),
+    sources: [{ label: 'Apple App Store metadata', url: app.metadataSource, accessedAt: app.metadataFetchedAt }, { label: 'Publisher’s App Store listing', url: app.storeUrl, accessedAt: app.metadataFetchedAt }],
+  };
+}
