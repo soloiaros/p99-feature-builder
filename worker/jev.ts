@@ -103,3 +103,9 @@ export async function decide(env: Env, state: unknown, questions: Record<string,
     return { scores: null, reason: 'unavailable', durationMs: Math.round(performance.now() - started) };
   }
 }
+export function modeNotice(reason: DecisionResult['reason']): string {
+  if (reason === 'missing-key') return 'No Jev key is configured, so these matches use keyword overlap in the public listings.';
+  if (reason === 'rejected') return 'Jev rejected the key. These matches use keyword overlap in the public listings.';
+  if (reason === 'unavailable') return 'Jev did not return a score in time. These matches use keyword overlap in the public listings.';
+  return 'Jev scored a short list for each feature. The rating is the public App Store score.';
+}
