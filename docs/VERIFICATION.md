@@ -1,3 +1,23 @@
+# p99 verification — 15 October 2026
+
+## Current changes (local, not deployed)
+
+- 55 offline tests pass across eight files, including bounded oversized-page extraction, manifest filtering, stack-specific guidance, signed search grants, guest allowance enforcement, cookie chunk limits, provider readiness, Stripe signatures and payment ownership.
+- TypeScript and production React/Worker build pass. Wrangler deployment dry-run passes: approximately 1.50 MiB gzip Worker. The existing lazy Three.js chunk still triggers Vite's large-chunk notice.
+- Full dependency audit reports zero known vulnerabilities. Public asset scan finds no configured secret values or `.dev.vars`.
+- Three live Jev smoke scenarios pass against the local Worker with the new Supabase backend. Observed analyze-plus-match times: habit tracker 1,734 ms, daily journal 1,271 ms, fitness 701 ms. Each preserves its signed guest cookies and search grant, receives full Markdown, and cannot obtain paid kit payloads.
+- Live disposable Supabase verification passes: eight simultaneous requests reserve exactly one guest search; anonymous clients cannot grant usage or read entitlements; a paid pass lasts 30 days; duplicate delivery does not extend it; refunds remove access immediately; a late checkout cannot reinstate an already-refunded payment. Test identities and records are removed afterward.
+- The first refund check exposed roughly nine seconds of clock skew between the database and local machine. Migration 003 removes the entitlement when no valid purchase remains, eliminating reliance on matching clocks for revocation.
+- Browser: completed a Vue/Supabase journal search with integration notes and dependency evidence; opened literal Markdown; verified copied source includes those constraints; downloaded the `.md`; opened the Premium offer; verified a second guest search after reload opens sign-in. Disabled provider buttons accurately reflect the current Supabase configuration.
+- Desktop screenshots reviewed at 1280px with no horizontal page overflow. A requested 390px browser viewport override did not apply (reported width remained 1280px), so the current mobile and 200% zoom layouts are **not visually verified**. Responsive CSS is implemented; repeat those checks before release.
+- Actual Google/GitHub OAuth and Stripe test Checkout remain unverified because their provider credentials are not configured. No production deployment or real charge was performed. See LAUNCH.md.
+
+Evidence: `screenshots/input-workspace-20261015.png`, `screenshots/markdown-source-20261015.png`, and `screenshots/premium-offer-20261015.png`.
+
+---
+
+The following is the historical verification record for the previously deployed app, not verification of the new account/Premium build.
+
 # p99 verification — 12 October 2026
 
 ## Deployment

@@ -38,7 +38,7 @@ Landing-page URLs must be HTTPS, standard port, without credentials, literal IPs
 
 DNS checks precede a separate hostname fetch and therefore cannot mathematically eliminate DNS rebinding between resolution and connection. Cloudflare’s outbound network is the runtime boundary; for stricter hostile-URL ingestion, place a filtering/pinning fetch service in front or restrict to an operator-approved hostname allowlist. A redirect is never followed even when it appears to remain public. Users can paste the final HTTPS URL or a description instead. JavaScript-only landing pages may require a description.
 
-Generated SVG interpolations are XML-escaped, Mermaid labels are constrained, and client-supplied metrics/evidence/source URLs are ignored by brief generation. User descriptions are context, not authority to alter the build instructions. The frontend should render prose as text or through a safe Markdown renderer, never raw HTML.
+Generated SVG interpolations are XML-escaped, Mermaid labels are constrained, and client-supplied metrics/evidence/source URLs are ignored by brief generation. User descriptions are context, not authority to alter the build instructions. The viewer renders literal Markdown as escaped text; copying and downloading preserve the same bytes.
 
 ## Sources and validation
 
@@ -49,3 +49,16 @@ Generated SVG interpolations are XML-escaped, Mermaid labels are constrained, an
 - Reference implementation studied: https://github.com/soloiaros/archies-appstore-lookup (`lib/jev/call.ts`, `lib/jev/score.ts`). This project adapts the shortlist-then-decision architecture; it does not reuse the reference’s silent 0.5 score fallback or infer revenue from chart rank.
 
 Run `npm test` for API flow, template exports/cache, realistic feature extraction, domain relevance, untrusted client evidence rejection, rate binding behavior, Jev schema/provider routing/fallback, and URL/DNS/redirect defenses. Run `npm run build` to typecheck the frontend, Worker and tests and package for Cloudflare. Live-provider validation remains distinct from mocked contract tests.
+
+
+## Accounts and Premium (15 October)
+
+`GET /api/account` returns provider readiness, the current user, plan and remaining allowance. `/api/auth/start?provider=google|github` starts PKCE; `/api/auth/callback` exchanges the code into HttpOnly cookies. `POST /api/auth/logout` signs out the local session. Google/GitHub buttons are enabled only when Supabase reports that provider configured.
+
+Configured deployments reserve one guest search, five monthly free-account searches, or 100 searches per Premium pass in Postgres. `/api/analyze` returns a `searchToken`; `/api/match` requires that token and the same cookies, project and features. Failed analysis releases its reservation. Guest identities are signed browser cookies, not one-per-person guarantees.
+
+Profiles accept bounded integration notes and dependency name/version strings. Website technology hints are low-confidence evidence about the landing page only. Fetching reads a bounded 1 MB prefix and cancels the rest, so oversized public HTML does not become a request-size error. Incoming API bodies remain capped at 100 KB.
+
+`POST /api/brief` always returns complete Markdown. Non-Premium responses have `premiumRequired: true`, no wireframe/flow payload, and only the Markdown file. Paid kits add a versioned JSON implementation checklist; it is not executable code or a claim that schemas inherently improve every coding agent.
+
+`POST /api/billing/checkout` and `/api/billing/restore` require an authenticated same-origin request. `/api/billing/webhook` requires a valid Stripe signature. Payment ownership, paid status, product, quantity and configured Price are verified server-side. Database fulfillment is idempotent; refunds and disputes revoke access. See LAUNCH.md for activation requirements.

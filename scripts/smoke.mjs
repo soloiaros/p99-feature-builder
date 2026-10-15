@@ -6,23 +6,27 @@ const cases = [
  { name: 'Daily journal', input: 'A private daily journal with mood tracking, guided reflection prompts, reminders and a searchable timeline of memories.', features: [feature('custom-mood-tracking', 'Mood tracking'), feature('reminders', 'Gentle reminders'), feature('search', 'Searchable memories'), feature('quantum-progress', 'Quantum teleportation progress', 'Daily progress and insights for quantum teleportation')], unmatched: ['quantum-progress'] },
  { name: 'Fitness companion', input: 'A strength training app with personalized workout plans, workout logging, progress charts, and shared challenges with friends.', features: [feature('logging', 'Workout logging'), feature('progress', 'Workout progress'), feature('social', 'Shared challenges with friends')] },
 ];
+let cookies = new Map();
 async function post(path, body) {
- const response = await fetch(`${base}/api/${path}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(12000)});
+ const response = await fetch(`${base}/api/${path}`,{method:'POST',headers:{'Content-Type':'application/json',cookie:[...cookies].map(([key,value])=>`${key}=${value}`).join('; ')},body:JSON.stringify(body),signal:AbortSignal.timeout(12000)});
+ for(const cookie of response.headers.getSetCookie()){const pair=cookie.split(';')[0];const at=pair.indexOf('=');cookies.set(pair.slice(0,at),pair.slice(at+1));}
  const data=await response.json(); assert.equal(response.status,200,`${path}: ${JSON.stringify(data)}`); return data;
 }
 const health=await fetch(`${base}/api/health`).then(r=>r.json());assert.ok(health.catalogCount>=1000);assert.equal(health.mode,'jev');
 for(const {name,input,features,unmatched=[]} of cases){
+ // Independent disposable guest browser per scenario; preserve identity within each flow.
+ cookies = new Map();
  const start=performance.now();
  const analyzed=await post('analyze',{input,features,profile:{name,platform:'iOS',stack:'SwiftUI'}});
  assert.deepEqual(analyzed.features,features);assert.equal(analyzed.suggested,false);
- const matched=await post('match',{project:analyzed.project,features:analyzed.features});
+ const matched=await post('match',{project:analyzed.project,features:analyzed.features,searchToken:analyzed.searchToken});
  assert.equal(matched.mode,'jev',matched.notice);
  assert.deepEqual((matched.unmatchedFeatures||[]).map(f=>f.id),unmatched);
  assert.deepEqual(matched.matches.map(m=>m.feature),features.filter(f=>!unmatched.includes(f.id)));
  assert.equal(new Set(matched.matches.map(m=>m.feature.id)).size,matched.matches.length);
  const elapsed=Math.round(performance.now()-start);
  const brief=await post('brief',{project:analyzed.project,match:matched.matches[0]});
- assert.ok(brief.markdown.length>6000);assert.ok(brief.files.length>=4);assert.match(brief.wireframeSvg,/<svg/);assert.match(brief.flowMermaid,/flowchart/);
+ assert.ok(brief.markdown.length>6000);assert.equal(brief.premiumRequired,true);assert.deepEqual(brief.files.map(file=>file.name),['feature-brief.md']);assert.equal(brief.wireframeSvg,'');assert.equal(brief.flowMermaid,'');
  assert.ok(matched.matches.every(m=>m.stats.find(s=>s.label==='Monthly revenue')?.status==='unavailable'));
  console.log(JSON.stringify({name,elapsedMs:elapsed,analyzeMs:analyzed.durationMs,matchMs:matched.durationMs,mode:matched.mode,matches:matched.matches.map(m=>`${m.feature.name}: ${m.app.name}`),unmatched:matched.unmatchedFeatures.map(f=>f.name),briefWords:brief.markdown.split(/\s+/).length}));
 }

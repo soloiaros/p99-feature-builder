@@ -33,9 +33,9 @@ The configured Jev route is OpenRouter (`https://openrouter.ai/api/v1/systemone`
 ## Demo flow
 
 1. Paste a public HTTPS landing page, or describe your app. This provides app context; choose the features separately.
-2. Select 1–7 feature tags, including custom tags, and choose **Find the best apps**. Platform, stack and project name are set in the input's profile control. Your selected feature names and order are preserved.
+2. Select 1–7 feature tags, including custom tags, and choose **Find the best apps**. Set platform, stack and project name in the same input block. Expand optional app details to include integration constraints and package.json dependency evidence. Your selected feature names and order are preserved.
 3. The surrounding page fades away and the query lifts into a persistent box. A Three.js icon swarm surrounds the pink robot while Jev evaluates references for your selections. Each supported feature receives one independently chosen app; the same app may win multiple features. Unsupported selections remain visible with an honest unmatched message. Use **Edit search** or click the robot to change the context or tags.
-4. Inspect dated statistics, feature evidence and confidence. Open the feature document, copy the Markdown, or download a ZIP containing `feature-brief.md`, `wireframe.svg`, `flow.mmd`, and `sources.json`.
+4. Inspect dated statistics, feature evidence and confidence. Open the literal Markdown source, copy it, or download the `.md`. Premium adds a ZIP with `feature-brief.md`, `wireframe.svg`, `flow.mmd`, `sources.json`, and `implementation-contract.json`.
 5. Save the project to reopen it in the same browser.
 
 The animation follows actual requests with no artificial delays and no route changes. **Less motion** and reduced-motion settings disable decorative movement. Matching results render immediately; decorative flights finish independently in under 650 ms. Candidate icons preload while matching, and image/network/WebGL failures leave results readable. Cancelling a search aborts its requests.
@@ -47,7 +47,7 @@ The animation follows actual requests with no artificial delays and no route cha
 - 1,000 actual US Apple App Store records and precomputed, excerpt-backed feature annotations. Snapshot date and source URLs travel with every result.
 - Explicit feature selections skip inference. Jev evaluates a small shortlist for each feature using app context, with independent winners and no forced app diversity. Custom tags require feature-specific publisher evidence before context can influence ranking. Automatic feature inference remains available to API clients that omit selections. No live Apple request is needed during matching.
 - Long briefs use detailed feature-specific implementation templates, tailored to the project context and stack. Jev is a decision model, not a prose generator. This keeps build kits instant, predictable and inexpensive; the UI discloses template generation.
-- Saved projects are browser-local. No account or multi-device sync is implemented.
+- Supabase handles Google/GitHub accounts and durable search allowances. Saved projects remain browser-local, separated by account; multi-device project sync is not implemented.
 
 ## Data honesty and limitations
 
@@ -67,13 +67,13 @@ npm run smoke -- https://p99.aauburn.com
 npm audit
 ```
 
-The smoke command performs actual paid-provider calls using the server's configured Jev key (three small demo cases). It sends explicit selections, checks a custom mood-tracking tag and an intentionally unsupported tag, requires Jev matching, and verifies that every selection becomes exactly one reference or an unmatched result. It also verifies brief content, files and unavailable revenue. Offline tests cover independent winners, feature-specific excerpts, input validation, private-address rejection, redirect handling and evidence-sensitive bundle caching.
+The smoke command performs actual paid-provider calls using the server's configured Jev key (three small demo cases). It sends explicit selections, checks a custom mood-tracking tag and an intentionally unsupported tag, requires Jev matching, and verifies that every selection becomes exactly one reference or an unmatched result. Each scenario uses a disposable guest identity, preserves its cookies and signed search grant, and verifies full free Markdown, locked paid files and unavailable revenue. Offline tests cover independent winners, feature-specific excerpts, input validation, private-address rejection, redirect handling and evidence-sensitive bundle caching.
 
 Refresh the catalog explicitly with `npm run seed` (Apple public endpoints; no AI expense). A Monday GitHub Action appends top-chart apps that are not already stored and opens a pull request. See [data provenance](docs/DATA.md), [API contracts](docs/API.md), [reference decisions](docs/REFERENCE-NOTES.md), [design notes](docs/DESIGN.md) and [verification record](docs/VERIFICATION.md).
 
 ## Accounts and search allowances
 
-Run `supabase/migrations/202610150001_accounts.sql` in the Supabase SQL editor. Configure Google and GitHub under Authentication → Providers and allow `https://p99.aauburn.com/api/auth/callback` (plus `http://localhost:5187/api/auth/callback` for local testing). The provider dashboards use the callback URL shown by Supabase, not the p99 callback.
+Apply all files in `supabase/migrations/` in order, or run `supabase db push` against the intended linked project. Configure Google and GitHub under Authentication → Providers and allow `https://p99.aauburn.com/api/auth/callback` (plus `http://localhost:5187/api/auth/callback` for local testing). The provider dashboards use the callback URL shown by Supabase, not the p99 callback.
 
 Set `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` as Worker secrets, and in `.dev.vars` for development. Never put the service role key in a `VITE_` variable. OAuth uses PKCE and server-managed, Secure/HttpOnly cookies. Sessions refresh through the server. Saved projects remain browser-local and are separated by account; they are not cloud synced.
 
@@ -85,8 +85,8 @@ The shipped production config requires account setup before searches can run. Lo
 
 The proposed launch offer is **$9 for 30 days, no automatic renewal**. The complete tailored Markdown is free; Premium unlocks 100 searches per pass and the downloadable wireframe, Mermaid flow, provenance and structured implementation contract. `PREMIUM_PRICE_LABEL` is presentation only; Stripe's configured Price determines the actual charge. Keep these values in sync.
 
-Run `supabase/migrations/202610150002_premium.sql`. In Stripe, create a **one-time** $9 USD Price and configure `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, and `STRIPE_WEBHOOK_SECRET` as Worker secrets. Start with test-mode keys. Register `https://p99.aauburn.com/api/billing/webhook` for `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `charge.refunded`, and `charge.dispute.created`. Test duplicate delivery, delayed payments, refunds, ownership, and expired passes before switching to live keys. Add your business's support, terms and refund policy in Stripe Checkout settings before taking payments.
+Apply the Premium and immediate-revocation migrations in `supabase/migrations/`. In Stripe, create a **one-time** $9 USD Price and configure `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, and `STRIPE_WEBHOOK_SECRET` as Worker secrets. Start with test-mode keys. Register `https://p99.aauburn.com/api/billing/webhook` for `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `charge.refunded`, and `charge.dispute.created`. Test duplicate delivery, delayed payments, refunds, ownership, and expired passes before switching to live keys. Add your business's support, terms and refund policy in Stripe Checkout settings before taking payments.
 
 Signed webhooks and the authenticated return/restore path both retrieve the Checkout Session from Stripe, verify its owner, product, Price and paid status, then call an idempotent database function. A checkout query parameter never grants access by itself. Refunds (including partial refunds) and disputes revoke the affected purchase; out-of-order notifications use payment tombstones. Resolve won disputes manually after reviewing them. Repeated purchase delivery does not extend access. An accidental second distinct payment extends the pass by 30 days; the UI prevents buying while access is already active.
 
-Paid files are removed server-side for non-Premium accounts. Existing downloaded kits remain theirs. Account and payment secrets, provider configuration, database migrations and real checkout verification are required before launch; this repository does not provision third-party accounts or charge money automatically.
+Paid files are removed server-side for non-Premium accounts. Existing downloaded kits remain theirs. Account and payment secrets, provider configuration, database migrations and real checkout verification are required before launch; the code does not charge money automatically. See [launch setup](docs/LAUNCH.md) for the provisioned p99 project and remaining activation steps.
