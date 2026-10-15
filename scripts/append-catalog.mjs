@@ -1,5 +1,5 @@
 /** Append US App Store top-chart apps that are not already in data/catalog.json. */
-import { readFile, writeFile } from 'node:fs/promises';
+import { appendFile, readFile, rename, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { coreGenres, enrich, extraGenres, fetchCharts, lookupSoftware, selectNewTrackIds, setOutput, withoutDuplicates } from './catalog-feed.mjs';
 
@@ -9,7 +9,8 @@ const maxApps = Math.max(18, Math.min(3000, Number(process.env.CATALOG_MAX) || 3
 const dryRun = process.argv.includes('--dry-run');
 
 const snapshot = JSON.parse(await readFile(catalogPath, 'utf8'));
-const existing = Array.isArray(snapshot.apps) ? snapshot.apps : [];
+if (!Array.isArray(snapshot.apps) || !snapshot.apps.length) throw new Error('Existing catalog missing or empty; refusing to overwrite it.');
+const existing = snapshot.apps;
 const room = maxApps - existing.length;
 if (room <= 0) {
   console.log(`Catalog already has ${existing.length} apps, which meets the ${maxApps} cap.`);
@@ -33,6 +34,7 @@ if (dryRun) {
 }
 
 const lookedUp = await lookupSoftware(ids, rows, capturedAt);
+if (lookedUp.failures.length) throw new Error('App Store lookup failed. Catalog unchanged; retry later.');
 const byId = new Map(lookedUp.apps.map((app) => [app.trackId, app]));
 const ordered = ids.map((id) => byId.get(id)).filter(Boolean);
 const additions = withoutDuplicates(existing, ordered).slice(0, wanted).map(enrich);
@@ -48,9 +50,14 @@ const output = {
   capturedAt,
   appCount: apps.length,
   apps,
-  failures: [...(snapshot.failures || []), ...failures, ...lookedUp.failures],
+  failures: [...(snapshot.failures || []), ...failures].slice(-100),
 };
-await writeFile(catalogPath, `${JSON.stringify(output, null, 2)}\n`);
+// Keep the previous snapshot intact if the write is interrupted.
+const temporaryPath = `${catalogPath}.tmp`;
+await writeFile(temporaryPath, `${JSON.stringify(output, null, 2)}\n`);
+await rename(temporaryPath, catalogPath);
 console.log(`Added ${additions.length} apps. Catalog now has ${apps.length}.`);
 await setOutput('added', String(additions.length));
 await setOutput('sample', additions.slice(0, 12).map((app) => app.name).join(', '));
+if (process.env.GITHUB_STEP_SUMMARY) await appendFile(process.env.GITHUB_STEP_SUMMARY,
+  `Added ${additions.length} apps; catalog now contains ${apps.length}. Skipped existing track IDs before lookup and existing bundle IDs before saving. ${failures.length} chart feeds unavailable. No AI calls.\n`);

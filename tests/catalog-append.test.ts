@@ -1,7 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { selectNewTrackIds, withoutDuplicates } from '../scripts/catalog-feed.mjs';
+import { chartEntries, selectNewTrackIds, withoutDuplicates } from '../scripts/catalog-feed.mjs';
 
 describe('chart catalog append', () => {
+  it('rejects broken feed responses instead of reporting no new apps', () => {
+    expect(() => chartEntries({ error: 'temporarily unavailable' })).toThrow('missing feed entries');
+    expect(chartEntries({ feed: { entry: [] } })).toEqual([]);
+  });
+
+  it('ignores invalid IDs and honors an exhausted budget', () => {
+    const rows = [NaN, -1, 1.5, Infinity, 2, 3].map(trackId => ({ trackId, rank: 1 }));
+    expect(selectNewTrackIds([], rows, 0)).toEqual([]);
+    expect(selectNewTrackIds([], rows, 1)).toEqual([2]);
+    expect(selectNewTrackIds([2], rows, 10)).toEqual([3]);
+  });
+
   it('keeps higher chart positions and skips ids already stored', () => {
     const rows = [
       { trackId: 2, rank: 4 },

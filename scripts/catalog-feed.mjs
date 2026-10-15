@@ -79,11 +79,11 @@ export async function fetchCharts(genreList, capturedAt, { includeOverall = fals
   for (const feed of feeds) {
     try {
       const payload = await json(feed.sourceUrl);
-      const entries = Array.isArray(payload?.feed?.entry) ? payload.feed.entry : [];
+      const entries = chartEntries(payload);
       rows.push(...entries.map((entry, index) => ({
         trackId: Number(entry.id?.attributes?.['im:id']), rank: index + 1, chart: feed.chart,
         genreId: feed.genreId, category: feed.category, country: 'us', sourceUrl: feed.sourceUrl, capturedAt,
-      })).filter((row) => row.trackId > 0));
+      })).filter((row) => Number.isSafeInteger(row.trackId) && row.trackId > 0));
       console.log(`${feed.category} ${feed.chart}: ${entries.length}`);
     } catch (error) {
       failures.push({ sourceUrl: feed.sourceUrl, error: String(error) });
@@ -91,16 +91,23 @@ export async function fetchCharts(genreList, capturedAt, { includeOverall = fals
     }
     await wait(300);
   }
+  if (!rows.length) throw new Error('No usable App Store charts returned. Catalog unchanged; retry later.');
   return { rows, failures };
 }
 
+export function chartEntries(payload) {
+  if (!Array.isArray(payload?.feed?.entry)) throw new Error('Unexpected chart response: missing feed entries');
+  return payload.feed.entry;
+}
+
 export function selectNewTrackIds(existingIds, chartRows, limit) {
-  const known = existingIds instanceof Set ? existingIds : new Set(existingIds);
+  if (!Number.isFinite(limit) || limit < 1) return [];
+  const known = new Set(Array.from(existingIds, Number));
   const picked = [];
   const seen = new Set();
   const ranked = [...chartRows].sort((a, b) => a.rank - b.rank || a.trackId - b.trackId);
   for (const row of ranked) {
-    if (!row.trackId || known.has(row.trackId) || seen.has(row.trackId)) continue;
+    if (!Number.isSafeInteger(row.trackId) || row.trackId <= 0 || known.has(row.trackId) || seen.has(row.trackId)) continue;
     seen.add(row.trackId);
     picked.push(row.trackId);
     if (picked.length >= limit) break;
@@ -145,8 +152,9 @@ export async function lookupSoftware(ids, chartRows, capturedAt, maxApps = Infin
     const sourceUrl = `https://itunes.apple.com/lookup?id=${batch.join(',')}&country=us&entity=software`;
     try {
       const payload = await json(sourceUrl);
-      for (const app of payload.results || []) {
-        if (app.wrapperType !== 'software' || !app.trackId) continue;
+      if (!Array.isArray(payload?.results)) throw new Error('Unexpected lookup response: missing results');
+      for (const app of payload.results) {
+        if (app.wrapperType !== 'software' || !batch.includes(app.trackId) || !app.bundleId || !app.trackName || !app.description) continue;
         apps.push(catalogApp(app, chartRows, capturedAt));
       }
       console.log(`Lookup: ${apps.length} apps`);

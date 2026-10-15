@@ -23,6 +23,16 @@ Run `node scripts/seed-catalog.mjs` with Node 20 or newer. It fetches 30 categor
 
 Run `node scripts/seed-catalog.mjs --from data/catalog.json` to reapply the feature rules to an existing snapshot with no network calls. The site reads the bundled snapshot at runtime: this script is a maintenance command, and no laptop process, scraper server, or local database is required to serve the deployed application.
 
+### Cheap incremental growth
+
+The schedule is Monday at 06:17 UTC (09:17 Istanbul), with manual runs available in GitHub Actions. It polls charts weekly rather than refreshing every stored app. A normal run makes 72 chart-feed requests and at most one batched Lookup request for 80 new IDs, before retries: about 292 requests per four runs. It uses no model tokens, paid scraping service, screenshots, or review scraping. GitHub runner usage depends on the repository's Actions allowance. Apple's feeds may change or be unavailable; this is a best-effort weekly observation, not a chart-update webhook or an exhaustive archive.
+
+Existing track IDs are excluded before metadata lookup. Existing bundle IDs are excluded again before saving. Records already stored are kept unchanged, even when they leave the charts. If a prior `catalog/charts-*` PR is still open, the entire run skips without contacting Apple, avoiding repeated lookups and duplicate review batches. Merge or close that PR to resume discovery. Chart or lookup outages must not be mistaken for zero new apps: no usable charts or a failed lookup fails the job and leaves the snapshot intact. Partial chart availability is recorded. Writes replace the catalog atomically.
+
+To preview discovery without changing the catalog, run `npm run catalog:append -- --dry-run`. To append a batch now, run `npm run catalog:append`. The 80-per-run and 3,000-total limits bound growth of the bundled Worker data; reaching the cap requires revisiting storage and bundle size, not silently dropping older apps.
+
+The workflow must be on the repository's default branch to run on schedule. In GitHub **Settings → Actions → General → Workflow permissions**, allow GitHub Actions to create pull requests. GitHub schedules can be delayed and can be disabled after 60 days of inactivity in a public repository; inspect the Actions page if updates stop. Review, merge, and deploy each catalog batch to make it searchable on p99.
+
 Public API shapes:
 
 - Lookup: `https://itunes.apple.com/lookup?id=570060128&country=us&entity=software`

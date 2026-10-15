@@ -10,3 +10,4 @@ export interface CatalogIdentity {
 
 export function selectNewTrackIds(existingIds: Iterable<number>, chartRows: ChartRow[], limit: number): number[];
 export function withoutDuplicates<T extends CatalogIdentity>(existing: T[], incoming: T[]): T[];
+export function chartEntries(payload: unknown): unknown[];

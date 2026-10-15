@@ -19,18 +19,35 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - name: Skip while an earlier catalog batch awaits review
+        id: pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pending=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls?state=open&per_page=100" --jq '.[] | select(.head.repo.full_name == .base.repo.full_name) | select(.head.ref | startswith("catalog/charts-")) | .number')
+          if [ -n "$pending" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            printf 'Catalog update skipped: an earlier catalog PR is still open (%s). Merge or close it before the next batch. No Apple or AI requests made.\n' "$pending" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/setup-node@v4
+        if: steps.pending.outputs.skip != 'true'
         with:
           node-version: '22'
       - name: Append chart apps that are not already stored
+        if: steps.pending.outputs.skip != 'true'
         id: append
         run: node scripts/append-catalog.mjs
       - name: Open a pull request
-        if: steps.append.outputs.added != '0'
+        if: steps.append.outputs.added != '' && steps.append.outputs.added != '0'
         env:
           GH_TOKEN: ${{ github.token }}
           ADDED: ${{ steps.append.outputs.added }}
           SAMPLE: ${{ steps.append.outputs.sample }}
+          BASE: ${{ github.event.repository.default_branch }}
         run: |
           branch="catalog/charts-${{ github.run_id }}"
           git config user.name "github-actions[bot]"
@@ -39,5 +56,5 @@ jobs:
           git add data/catalog.json
           git commit -m "Add ${ADDED} apps from the App Store top charts."
           git push -u origin "$branch"
-          body="$(printf 'Adds %s US App Store apps from the current top charts. Each one has a track id and bundle id that were not already in data/catalog.json.\n\nExamples: %s\n\nThe live site keeps serving the catalog bundled at the last deploy. Merge this pull request, then deploy, when these apps should be searchable.\n' "$ADDED" "$SAMPLE")"
-          gh pr create --title "Add ${ADDED} apps from the App Store top charts" --body "$body"
+          printf 'Adds %s US App Store apps from the current top charts. Each one has a track id and bundle id that were not already in data/catalog.json.\n\nExamples: %s\n\nNo AI calls or paid data provider. Existing records are preserved.\n\nThe live site keeps serving the catalog bundled at the last deploy. Merge this pull request, then deploy, when these apps should be searchable.\n' "$ADDED" "$SAMPLE" > "$RUNNER_TEMP/catalog-pr.md"
+          gh pr create --base "$BASE" --title "Add ${ADDED} apps from the App Store top charts" --body-file "$RUNNER_TEMP/catalog-pr.md"
