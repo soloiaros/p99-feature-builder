@@ -18,6 +18,10 @@
     ]
   },
   "vars": {
+    "REQUIRE_ACCOUNTS": "true",
+    "FREE_SEARCH_LIMIT": "5",
+    "PREMIUM_SEARCH_LIMIT": "100",
+    "PREMIUM_PRICE_LABEL": "$9",
     "JEV_MODEL": "jev-latest",
     "JEV_BASE_URL": "https://openrouter.ai/api/v1"
   },

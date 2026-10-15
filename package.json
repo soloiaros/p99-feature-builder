@@ -18,6 +18,7 @@
   "dependencies": {
     "@fontsource-variable/azeret-mono": "^5.2.8",
     "@fontsource/dm-sans": "^5.2.8",
+    "@supabase/supabase-js": "^2.117.3",
     "fflate": "^0.8.2",
     "lucide-react": "^0.468.0",
     "motion": "^12.23.0",

@@ -72,6 +72,7 @@ export interface FeatureMatch {
 
 export interface AnalyzeRequest { input: string; profile?: Partial<ProjectProfile>; features?: Feature[] }
 export interface AnalyzeResponse {
+  searchToken?: string;
   project: Project;
   features: Feature[];
   candidates?: AppSummary[];
@@ -127,4 +128,10 @@ export interface HealthResponse {
   enrichedCount: number;
   catalogUpdatedAt: string;
   briefMode: 'template';
+}
+
+export interface AccountState {
+  configured: boolean; user: { id: string; email: string } | null;
+  premium: boolean; expiresAt: string | null; remaining: number; limit: number;
+  checkoutEnabled: boolean; priceLabel: string;
 }

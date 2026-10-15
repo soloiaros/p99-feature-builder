@@ -1,3 +1,4 @@
+import { accountContext, accountsConfigured, accountState, fingerprint, reserveSearch, releaseSearch, signGrant, verifyGrant, type AccountContext } from './accounts';
 import type { CatalogResponse, HealthResponse } from '../src/shared/types';
 import { appById, apps, capturedAt, createMatch, enrichedCount, galleryApps, shortlist } from './catalog';
 import { cachedBrief } from './brief';
@@ -16,6 +17,9 @@ function json(data: unknown, status = 200): Response {
 }
 export async function handleRequest(request: Request, env: Env, fetcher: typeof fetch = fetch): Promise<Response> {
   const url = new URL(request.url);
+  const sessionHeaders = new Headers();
+  let context: AccountContext | undefined;
+  const reply = (data: unknown, status = 200) => { const response = json(data, status); sessionHeaders.forEach((value, name) => { if (name !== 'set-cookie') response.headers.append(name, value); }); for (const cookie of sessionHeaders.getSetCookie()) response.headers.append('set-cookie', cookie); return response; };
   try {
     if (!url.pathname.startsWith('/api/')) {
       if (!env.ASSETS) return new Response('Not found', { status: 404, headers: securityHeaders });
@@ -31,6 +35,34 @@ export async function handleRequest(request: Request, env: Env, fetcher: typeof 
     if (request.method === 'GET' && url.pathname === '/api/catalog') {
       return json({ apps: galleryApps(), total: apps.length, enrichedCount, updatedAt: capturedAt, categories: [...new Set(apps.map((app) => app.primaryGenre))].sort(), features: FEATURES } satisfies CatalogResponse);
     }
+    if (url.pathname === '/api/account' && request.method === 'GET') {
+      if (!accountsConfigured(env)) return reply({ configured: false, user: null, premium: false, expiresAt: null, remaining: 1, limit: 1, checkoutEnabled: false, priceLabel: env.PREMIUM_PRICE_LABEL || '$9' });
+      return reply(await accountState(await accountContext(request, env, sessionHeaders, fetcher), env));
+    }
+    if (url.pathname.startsWith('/api/auth/')) {
+      context = await accountContext(request, env, sessionHeaders, fetcher);
+      if (url.pathname === '/api/auth/start' && request.method === 'GET') {
+        const provider = url.searchParams.get('provider');
+        if (provider !== 'google' && provider !== 'github') throw new ApiError(422, 'Choose Google or GitHub.');
+        const { data, error } = await context.client.auth.signInWithOAuth({ provider, options: { redirectTo: `${url.origin}/api/auth/callback`, skipBrowserRedirect: true } });
+        if (error || !data.url) throw new ApiError(503, 'Sign-in could not start. Try again.');
+        sessionHeaders.set('location', data.url); sessionHeaders.set('cache-control', 'no-store');
+        return new Response(null, { status: 302, headers: sessionHeaders });
+      }
+      if (url.pathname === '/api/auth/callback' && request.method === 'GET') {
+        const code = url.searchParams.get('code');
+        const result = code ? await context.client.auth.exchangeCodeForSession(code) : null;
+        sessionHeaders.set('location', `${url.origin}/?auth=${result && !result.error ? 'success' : 'error'}`); sessionHeaders.set('cache-control', 'no-store');
+        return new Response(null, { status: 302, headers: sessionHeaders });
+      }
+      if (url.pathname === '/api/auth/logout' && request.method === 'POST') {
+        if (request.headers.get('origin') !== url.origin) throw new ApiError(403, 'Use the app from its own website.');
+        const { error } = await context.client.auth.signOut({ scope: 'local' });
+        if (error) throw new ApiError(503, 'Sign-out failed. Please try again.');
+        return reply({ ok: true });
+      }
+      return reply({ error: 'Endpoint not found.' }, 404);
+    }
     if (!['/api/analyze', '/api/match', '/api/brief'].includes(url.pathname)) return json({ error: 'Endpoint not found.' }, 404);
     if (request.method !== 'POST') return json({ error: 'Use POST for this endpoint.' }, 405);
     const origin = request.headers.get('origin');
@@ -40,13 +72,27 @@ export async function handleRequest(request: Request, env: Env, fetcher: typeof 
       const { success } = await env.API_RATE_LIMITER.limit({ key: `${client}:${url.pathname}` });
       if (!success) return new Response(JSON.stringify({ error: 'Too many requests. Try again in a minute.' }), { status: 429, headers: { ...securityHeaders, 'content-type': 'application/json', 'retry-after': '60' } });
     }
+    if (env.REQUIRE_ACCOUNTS === 'true' && !accountsConfigured(env) && !['localhost', '127.0.0.1'].includes(url.hostname)) throw new ApiError(503, 'Accounts are being set up. Please try again shortly.');
     const body = await readJson(request);
+    if (accountsConfigured(env)) context = await accountContext(request, env, sessionHeaders, fetcher);
     if (url.pathname === '/api/analyze') {
       if (typeof body.input !== 'string' || body.input.trim().length < 12) throw new ApiError(422, 'Add a little more detail about your app, or paste a full HTTPS URL.');
-      return json(await analyze(body, env, fetcher));
+      const reservation = context ? await reserveSearch(context) : null;
+      try {
+        const analysis = await analyze(body, env, fetcher);
+        const searchToken = context ? await signGrant({ kind: 'search', subject: context.subject, project: await fingerprint(analysis.project), features: await fingerprint(analysis.features), exp: Date.now() + 30 * 86400000 }, env) : undefined;
+        return reply({ ...analysis, searchToken });
+      } catch (error) { if (context && reservation) await releaseSearch(context, reservation); throw error; }
     }
     const project = parseProject(body.project);
-    if (url.pathname === '/api/match') return json(await matchFeatures(project, parseFeatures(body.features), env, fetcher));
+    if (url.pathname === '/api/match') {
+      const features = parseFeatures(body.features);
+      if (context) {
+        const grant = await verifyGrant(typeof body.searchToken === 'string' ? body.searchToken : undefined, env);
+        if (!grant || grant.kind !== 'search' || grant.subject !== context.subject || grant.project !== await fingerprint(project) || grant.features !== await fingerprint(features)) throw new ApiError(401, 'Start a new search to compare these features.');
+      }
+      return reply(await matchFeatures(project, features, env, fetcher));
+    }
     const requested = record(body.match);
     const feature = parseFeature(requested.feature);
     const appId = textField(record(requested.app).id, 'App id', 30);
@@ -56,11 +102,11 @@ export async function handleRequest(request: Request, env: Env, fetcher: typeof 
     const candidate = shortlist(feature, project.description, apps.length).find((item) => item.app.trackId === app.trackId);
     if (!candidate) throw new ApiError(422, 'This reference has no supporting feature evidence. Choose another match.');
     const match = createMatch(feature, candidate);
-    return json(await cachedBrief(project, match, url.origin));
+    return reply(await cachedBrief(project, match, url.origin));
   } catch (error) {
-    if (error instanceof ApiError) return json({ error: error.message }, error.status);
+    if (error instanceof ApiError) return reply({ error: error.message }, error.status);
     // No provider bodies, input text, credentials or stack traces reach the response or logs.
-    return json({ error: 'We could not finish that request. Please try again, or use a short app description.' }, 503);
+    return reply({ error: 'We could not finish that request. Please try again, or use a short app description.' }, 503);
   }
 }
 

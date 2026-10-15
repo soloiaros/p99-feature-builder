@@ -1,6 +1,16 @@
 import { limitedText } from './security';
 
 export interface Env {
+  REQUIRE_ACCOUNTS?: string;
+  SUPABASE_URL?: string;
+  SUPABASE_ANON_KEY?: string;
+  SUPABASE_SERVICE_ROLE_KEY?: string;
+  FREE_SEARCH_LIMIT?: string;
+  PREMIUM_SEARCH_LIMIT?: string;
+  PREMIUM_PRICE_LABEL?: string;
+  STRIPE_SECRET_KEY?: string;
+  STRIPE_PRICE_ID?: string;
+  STRIPE_WEBHOOK_SECRET?: string;
   ASSETS?: Fetcher;
   JEV_API_KEY?: string;
   TYPESAFE_API_KEY?: string;

@@ -5,3 +5,9 @@ JEV_BASE_URL=https://api.typesafe.ai/v1
 JEV_MODEL=jev-latest
 # OpenRouter is also supported: set OPENROUTER_API_KEY and omit JEV_API_KEY,
 # or select JEV_BASE_URL=https://openrouter.ai/api/v1 for a JEV_API_KEY issued there.
+
+# Supabase: configure Google and GitHub providers, then allow
+# https://p99.aauburn.com/api/auth/callback (and localhost callback for development).
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=

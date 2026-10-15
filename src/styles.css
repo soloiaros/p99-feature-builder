@@ -225,3 +225,5 @@ svg { flex-shrink: 0; }
   .toast { font-size: 12px; padding: 12px 16px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+.auth-options { display: grid; gap: 12px; margin: 26px 0; }
+.auth-options button { min-height: 48px; }
