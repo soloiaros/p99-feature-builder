@@ -8,3 +8,6 @@ dist/
 openai-relay-for-cursor/
 .DS_Store
 *.tsbuildinfo
+
+supabase/.temp/
+supabase/.branches/
