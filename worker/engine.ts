@@ -2,7 +2,7 @@ import type { AnalyzeResponse, Feature, MatchResponse, Project } from '../src/sh
 import { apps, capturedAt, createMatch, shortlist, summarizeApp } from './catalog';
 import { FEATURE_DEFINITIONS, FEATURES, lexicalFeatures } from './features';
 import { decide, modeNotice, providerInfo, type Env } from './jev';
-import { parseFeatures, readLandingPage, record, textField } from './security';
+import { parseContext, parseFeatures, readLandingPage, record, textField } from './security';
 
 function preloadCandidates(features: Feature[], description: string) {
   const candidates = new Map(features.flatMap((feature) => shortlist(feature, description, 4)).map(({ app }) => [app.trackId, app]));
@@ -20,11 +20,12 @@ export async function analyze(body: Record<string, unknown>, env: Env, fetcher: 
   const page = isUrl ? await readLandingPage(input, fetcher) : null;
   const description = page?.description ?? input;
   const project: Project = {
+    ...parseContext(profile),
     input, description,
     name: textField(profile.name, 'Project name', 100, page?.title || 'My app'),
-    platform: textField(profile.platform, 'Platform', 80, 'iOS'),
-    stack: textField(profile.stack, 'Stack', 160, 'SwiftUI'),
-    ...(page ? { sourceUrl: page.sourceUrl } : {}),
+    platform: textField(profile.platform, 'Platform', 80, 'Not sure'),
+    stack: textField(profile.stack, 'Stack', 160, 'Use existing stack'),
+    ...(page ? { sourceUrl: page.sourceUrl, technologyHints: page.technologyHints } : {}),
   };
   if (selected) return {
     project, features: selected, candidates: preloadCandidates(selected, description),

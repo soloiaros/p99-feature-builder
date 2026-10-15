@@ -20,12 +20,15 @@ export interface ProjectProfile {
   name: string;
   platform: string;
   stack: string;
+  integrationNotes?: string;
+  dependencies?: string[];
 }
 
 export interface Project extends ProjectProfile {
   input: string;
   description: string;
   sourceUrl?: string;
+  technologyHints?: string[];
 }
 
 export interface Feature {

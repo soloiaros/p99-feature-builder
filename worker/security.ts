@@ -43,9 +43,16 @@ export async function readJson(request: Request): Promise<Record<string, unknown
   const body = await limitedText(request.body, 100_000);
   try { return record(JSON.parse(body)); } catch (error) { if (error instanceof ApiError) throw error; throw new ApiError(400, 'The request contains invalid JSON.'); }
 }
+export function parseContext(input: Record<string, unknown>) {
+  const notes = input.integrationNotes === undefined || input.integrationNotes === '' ? '' : textField(input.integrationNotes, 'Integration notes', 2400);
+  if (input.dependencies !== undefined && (!Array.isArray(input.dependencies) || input.dependencies.length > 40 || input.dependencies.some((item) => typeof item !== 'string' || item.length > 140 || !/^[a-zA-Z0-9@/_.+^~*:<>=| -]+$/.test(item)))) throw new ApiError(422, 'Use up to 40 package names and versions.');
+  return { integrationNotes: notes, dependencies: (input.dependencies || []) as string[] };
+}
 export function parseProject(value: unknown): Project {
   const input = record(value);
   return {
+    ...parseContext(input),
+    ...(Array.isArray(input.technologyHints) ? { technologyHints: input.technologyHints.slice(0, 12).map(value => textField(value, 'Technology hint', 80)) } : {}),
     input: textField(input.input, 'Project input', 6000),
     description: textField(input.description, 'Project description', 12000),
     name: textField(input.name, 'Project name', 100),
@@ -125,7 +132,19 @@ export function pageText(html: string): { title: string; description: string } {
   const clean = html.replace(/<(script|style|noscript|svg|nav|footer|header)\b[^>]*>[\s\S]*?(?:<\/\1>|$)/gi, ' ').replace(/<!--[\s\S]*?-->/g, ' ').replace(/<[^>]*>/g, ' ');
   return { title, description: decodeEntities(`${metadata} ${clean}`).replace(/\s+/g, ' ').trim().slice(0, 10000) };
 }
-export async function readLandingPage(input: string, fetcher: typeof fetch = fetch): Promise<{ title: string; description: string; sourceUrl: string }> {
+export function detectTechnologies(html: string): string[] {
+  // Passive, bounded fingerprints. A marketing website is not evidence of a native app's stack.
+  const signatures: [string, RegExp][] = [
+    ['Next.js', /(?:src|href)=["'][^"']*\/_next\/|id=["']__NEXT_DATA__["']/i],
+    ['Nuxt', /(?:src|href)=["'][^"']*\/_nuxt\//i],
+    ['SvelteKit', /(?:src|href)=["'][^"']*\/_app\/immutable\//i],
+    ['WordPress', /(?:src|href)=["'][^"']*\/wp-content\//i],
+    ['Webflow', /data-wf-(?:site|page)=["']/i],
+    ['Shopify', /(?:src|href)=["'][^"']*cdn\.shopify\.com\//i],
+  ];
+  return signatures.filter(([, pattern]) => pattern.test(html)).map(([name]) => name);
+}
+export async function readLandingPage(input: string, fetcher: typeof fetch = fetch): Promise<{ title: string; description: string; sourceUrl: string; technologyHints: string[] }> {
   const url = validatePublicUrl(input);
   await assertPublicDns(url.hostname, fetcher);
   const response = await fetcher.call(globalThis, url.href, {
@@ -142,5 +161,5 @@ export async function readLandingPage(input: string, fetcher: typeof fetch = fet
   const content = await limitedText(response.body, 1_000_000, 'truncate');
   const extracted = type.includes('text/html') ? pageText(content) : { title: '', description: content.slice(0, 10000) };
   if (extracted.description.length < 30) throw new ApiError(422, 'This page has too little readable text. Describe your app instead.');
-  return { ...extracted, sourceUrl: url.href };
+  return { ...extracted, sourceUrl: url.href, technologyHints: type.includes('text/html') ? detectTechnologies(content) : [] };
 }

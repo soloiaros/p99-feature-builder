@@ -44,7 +44,7 @@ describe('end-to-end API without a provider key', () => {
     expect(brief.wireframeSvg).toContain('<svg');
     expect(brief.wireframeSvg).not.toContain('<script');
     expect(brief.flowMermaid).toContain('flowchart TD');
-    expect(brief.files.map((file: { name: string }) => file.name)).toEqual(['feature-brief.md', 'wireframe.svg', 'flow.mmd', 'sources.json']);
+    expect(brief.files.map((file: { name: string }) => file.name)).toEqual(['feature-brief.md', 'wireframe.svg', 'flow.mmd', 'implementation-contract.json', 'sources.json']);
     const repeated = await (await handleRequest(post('/api/brief', request), {})).json() as BriefResponse;
     expect(repeated.cached).toBe(true);
   });

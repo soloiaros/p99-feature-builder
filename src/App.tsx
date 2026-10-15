@@ -5,6 +5,7 @@ import { SearchScene } from './components/SearchScene';
 import { RobotCompanion } from './components/RobotCompanion';
 import { FeaturePicker } from './components/FeaturePicker';
 import { DocumentTrigger, FeatureDocument } from './components/FeatureDocument';
+import { manifestDependencies } from './lib/manifest';
 import { iconThumbnail } from './lib/app-icons';
 import type { AnalyzeResponse, AppSummary, BriefResponse, CatalogResponse, Feature, FeatureMatch, MatchResponse, Project, ProjectProfile } from './shared/types';
 
@@ -42,7 +43,8 @@ export default function App() {
   const [input, setInput] = useState('');
   const [features, setFeatures] = useState<Feature[]>([]);
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
-  const [profile, setProfile] = useState<ProjectProfile>({ name: 'My app', platform: 'iOS', stack: 'SwiftUI' });
+  const [profile, setProfile] = useState<ProjectProfile>({ name: 'My app', platform: 'Not sure', stack: 'Use existing stack' });
+  const [manifest, setManifest] = useState('');
   const [showProfile, setShowProfile] = useState(false);
   const [project, setProject] = useState<Project | null>(null);
   const [matches, setMatches] = useState<FeatureMatch[]>([]);
@@ -122,6 +124,8 @@ export default function App() {
   async function analyze() {
     if (input.trim().length < 12) { setError('Add a link, or a few sentences about the app.'); inputRef.current?.focus(); return; }
     if (!features.length) { setError('Add at least one feature.'); return; }
+    let dependencies: string[];
+    try { dependencies = manifest.trim() ? manifestDependencies(manifest) : profile.dependencies || []; } catch (error) { setError((error as Error).message); return; }
     controller.current?.abort(); briefController.current?.abort();
     const ctrl = new AbortController(); controller.current = ctrl;
     const started = performance.now();
@@ -129,7 +133,7 @@ export default function App() {
     setStage('analyzing'); setRunId(id => id + 1); setSceneActive(true); setSkipped(false); setError('');
     window.scrollTo({ top: 0, behavior: 'instant' });
     try {
-      const analyzed = await api<AnalyzeResponse>('analyze', { input, features, profile: { ...profile, name: profile.name === 'My app' ? undefined : profile.name } }, ctrl.signal);
+      const analyzed = await api<AnalyzeResponse>('analyze', { input, features, profile: { ...profile, dependencies, name: profile.name === 'My app' ? undefined : profile.name } }, ctrl.signal);
       if (ctrl.signal.aborted || controller.current !== ctrl) return;
       setProject(analyzed.project); setCandidates(analyzed.candidates || []); setStage('matching');
       const result = await api<MatchResponse>('match', { project: analyzed.project, features: analyzed.features }, ctrl.signal);
@@ -173,7 +177,7 @@ export default function App() {
   }
   function reopen(item: SavedProject) {
     controller.current?.abort(); briefController.current?.abort(); setBriefBusy(false); setBriefError(''); setDocumentMatch(null); setSceneActive(false);
-    setProject(item.project); setProfile({ name: item.project.name, platform: item.project.platform, stack: item.project.stack }); setInput(item.project.input);
+    setProject(item.project); setProfile({ name: item.project.name, platform: item.project.platform, stack: item.project.stack, integrationNotes: item.project.integrationNotes, dependencies: item.project.dependencies }); setManifest(''); setInput(item.project.input);
     const savedFeatures = item.features || item.matches.map(match => match.feature);
     setFeatures(savedFeatures); setMatches(item.matches); setUnmatched(savedFeatures.filter(feature => !item.matches.some(match => match.feature.id === feature.id)));
     setMode(item.mode); setNotice('Saved earlier in this browser. Check the source dates.'); setBriefs({}); setModal(null); setStage('results'); window.scrollTo({ top: 0, behavior: 'instant' });
@@ -197,7 +201,7 @@ export default function App() {
               </motion.div>
               <FeaturePicker value={features} onChange={next => { setFeatures(next); setError(''); }} />
               <div className="search-actions"><button type="button" className="profile-button" aria-expanded={showProfile} onClick={() => setShowProfile(value => !value)}><SlidersHorizontal size={14} />{profile.platform} · {profile.stack}<ChevronDown size={13} /></button><button type="submit" className="primary" disabled={input.trim().length < 12 || !features.length}>Find the best apps <ArrowRight size={17} /></button></div>
-              <AnimatePresence>{showProfile && <motion.div className="profile-fields" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}><label>App name<input value={profile.name} maxLength={100} onChange={event => setProfile({ ...profile, name: event.target.value })} /></label><label>Platform<select value={profile.platform} onChange={event => setProfile({ ...profile, platform: event.target.value })}><option>iOS</option><option>Android</option><option>Web</option><option>Cross-platform</option></select></label><label>Stack<input value={profile.stack} maxLength={100} onChange={event => setProfile({ ...profile, stack: event.target.value })} /></label></motion.div>}</AnimatePresence>
+              <AnimatePresence>{showProfile && <motion.div className="profile-fields" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}><label>App name<input value={profile.name} maxLength={100} onChange={event => setProfile({ ...profile, name: event.target.value })} /></label><label>Platform<select value={profile.platform} onChange={event => setProfile({ ...profile, platform: event.target.value })}><option>Not sure</option><option>iOS</option><option>Android</option><option>Web</option><option>Cross-platform</option></select></label><label>Stack<input value={profile.stack} maxLength={100} onChange={event => setProfile({ ...profile, stack: event.target.value })} /></label><label className="context-wide">Existing app details <span>Optional</span><textarea value={profile.integrationNotes || ''} maxLength={2400} onChange={event => setProfile({ ...profile, integrationNotes: event.target.value })} placeholder="Existing routes, database entities, auth, design system, and anything the feature must reuse." /></label><label className="context-wide">package.json <span>Optional · names and versions only are used</span><textarea value={manifest} maxLength={30000} onChange={event => setManifest(event.target.value)} placeholder='{"dependencies": {"react": "^19.0.0"}}' /></label></motion.div>}</AnimatePresence>
               {error && <p className="error-message" role="alert">{error}</p>}
               <p className="search-footnote">You pick the feature. We look through public App Store listings.</p>
             </form>
