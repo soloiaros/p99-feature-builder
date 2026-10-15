@@ -1,7 +1,6 @@
 import type { BriefResponse, BriefSection, Feature, FeatureMatch, Project } from '../src/shared/types';
 import { capturedAt } from './catalog';
 import { featureDefinition } from './features';
-import { designHandoff } from './design-handoff';
 
 const bullets = (items: string[]) => items.map((item) => `- ${item}`).join('\n');
 const numbered = (items: string[]) => items.map((item, i) => `${i + 1}. ${item}`).join('\n');
@@ -124,7 +123,6 @@ export function generateBrief(project: Project, match: FeatureMatch): BriefRespo
   const name = safeText(project.name);
   const title = `${feature.name} for ${name}`;
   const context = safeText(project.description).slice(0, 2200);
-  const design = designHandoff(project, feature);
   const sections: BriefSection[] = [
     {
       id: 'mission', title: 'Mission & project context',
@@ -153,10 +151,6 @@ export function generateBrief(project: Project, match: FeatureMatch): BriefRespo
     {
       id: 'interface', title: 'Original interface & accessibility',
       content: `Create original layouts, visual assets, names and microcopy appropriate to ${name}. Reuse the project’s typography, spacing, colors, components and interaction conventions. Do not copy the reference app’s branding, screenshots, mascot, illustrations, exact screens or distinctive wording. The included wireframe.svg is an original structural aid, not a pixel specification.\n\nUse a clear information hierarchy: current state first, next action second, supporting history third. Make touch targets at least 44 × 44 logical points, preserve visible focus, provide semantic labels and maintain readable contrast. Support large text without truncating essential status or actions. Test narrow layouts and keyboard operation. Give charts and non-text status an equivalent written summary.\n\nMotion should acknowledge a completed action and must never delay access to results. Respect reduced motion with an immediate or subtle opacity transition. Announce asynchronous outcomes to assistive technology without repeatedly interrupting the person. Permission-denied and offline states must remain navigable.`,
-    },
-    {
-      id: 'design-review', title: 'Oil UI integration & visual verification',
-      content: design.markdown,
     },
     {
       id: 'resilience', title: 'Edge cases & recovery',
@@ -189,9 +183,8 @@ export function generateBrief(project: Project, match: FeatureMatch): BriefRespo
     flow: definition.flow, invariants: definition.rules, proposedEntities: definition.entities,
     edgeCases: definition.edgeCases, acceptanceCriteria: definition.acceptance,
     evidence: match.evidence,
-    designReview: design.contract,
   };
-  const markdown = `# ${safeText(title)}\n\nOriginal implementation brief · template version 6 · data snapshot ${capturedAt.slice(0, 10)}\n\n${sections.map((section) => `## ${section.title}\n\n${section.content}`).join('\n\n')}\n\n## Sources\n\n${sourceSection}\n\nSupporting files: wireframe.svg (original concept), flow.mmd (Mermaid source), sources.json (provenance), implementation-contract.json (structured requirements).\n`;
+  const markdown = `# ${safeText(title)}\n\nOriginal implementation brief · template version 5 · data snapshot ${capturedAt.slice(0, 10)}\n\n${sections.map((section) => `## ${section.title}\n\n${section.content}`).join('\n\n')}\n\n## Sources\n\n${sourceSection}\n\nSupporting files: wireframe.svg (original concept), flow.mmd (Mermaid source), sources.json (provenance), implementation-contract.json (structured requirements).\n`;
   const wireframeSvg = generateWireframe(project, feature);
   const flowMermaid = generateFlow(feature);
   return {
@@ -211,7 +204,7 @@ export function generateBrief(project: Project, match: FeatureMatch): BriefRespo
 const memory = new Map<string, { expires: number; brief: BriefResponse }>();
 export async function cachedBrief(project: Project, match: FeatureMatch, origin: string): Promise<BriefResponse> {
   // Evidence participates in the signature so corrected excerpts cannot reuse stale bundles.
-  const payload = JSON.stringify({ version: 6, project, feature: match.feature, app: match.app.id, evidence: match.evidence, snapshot: capturedAt });
+  const payload = JSON.stringify({ version: 5, project, feature: match.feature, app: match.app.id, evidence: match.evidence, snapshot: capturedAt });
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(payload));
   const hash = Array.from(new Uint8Array(digest), (part) => part.toString(16).padStart(2, '0')).join('');
   const cached = memory.get(hash);
