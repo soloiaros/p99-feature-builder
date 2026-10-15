@@ -170,7 +170,7 @@ export function FeaturePicker({ value, onChange, disabled = false }: FeaturePick
   };
 
   return (
-    <section className="feature-picker" aria-labelledby={`${id}-label`} data-disabled={disabled} data-dragging={dragging}>
+    <section className="feature-picker" aria-labelledby={`${id}-label`} data-disabled={disabled} data-dragging={dragging} data-has-features={value.length > 0}>
       <div className="fp-label-row">
         <label id={`${id}-label`} htmlFor={`${id}-input`}>2. Features to add <span className="required-label">Required</span></label>
         <span id={`${id}-count`} aria-label={`${value.length} of ${MAX_FEATURES} features selected`}>{value.length} / {MAX_FEATURES}</span>
@@ -187,11 +187,11 @@ export function FeaturePicker({ value, onChange, disabled = false }: FeaturePick
         <div className="fp-input-wrap">
           <input ref={inputRef} id={`${id}-input`} value={draft} disabled={disabled} maxLength={240}
             placeholder={full ? 'Remove a tag to add another' : value.length ? 'Add another feature' : 'Type a feature'}
-            autoComplete="off" aria-describedby={`${id}-hint ${id}-count`} onChange={(event) => setDraft(event.target.value)} onKeyDown={onInputKey} />
+            autoComplete="off" aria-describedby={value.length === 0 ? `${id}-hint ${id}-count` : `${id}-count`} onChange={(event) => setDraft(event.target.value)} onKeyDown={onInputKey} />
           {draft.trim() && !full && <button className="fp-add" type="button" disabled={disabled} aria-label="Add typed feature" onClick={() => { addDraft(draft); inputRef.current?.focus(); }}><Plus size={15} aria-hidden="true" /></button>}
         </div>
       </div>
-      <p className="fp-hint" id={`${id}-hint`}>Choose at least one tag, or type your own.</p>
+      {value.length === 0 && <p className="fp-hint" id={`${id}-hint`}>Choose at least one tag, or type your own.</p>}
       <div className="fp-marquee" aria-label="Feature suggestions">
         {ROWS.map((row, rowIndex) => (
           <div className={`fp-lane fp-lane-${rowIndex}`} key={rowIndex} onFocusCapture={focusSuggestion}
