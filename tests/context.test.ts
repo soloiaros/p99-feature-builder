@@ -25,4 +25,11 @@ it('carries owner constraints and typed requirements into the complete kit', asy
   const contract = JSON.parse(brief.files.find(file => file.name === 'implementation-contract.json')!.content);
   expect(contract.acceptanceCriteria.length).toBeGreaterThan(0);
   expect(contract.project.constraints).toContain('/journal');
+  expect(contract.designReview.required).toBe(false);
+  expect(contract.designReview.featureRecoveryCases).toEqual(contract.edgeCases);
+  expect(contract.designReview.outcome).toBe(contract.feature.outcome);
+  expect(brief.markdown).toContain('Oil UI integration & visual verification');
+  expect(brief.markdown).toContain('If neither is installed');
+  expect(brief.markdown).toContain('Do not download, execute, or purchase anything automatically');
+  expect(brief.markdown).toContain('template version 6');
 });
