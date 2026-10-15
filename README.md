@@ -26,7 +26,7 @@ npx wrangler secret put JEV_API_KEY
 npx wrangler deploy
 ```
 
-This deploys one Worker plus static assets. **The deployed app needs no local server, relay, container, or running laptop.** The 1,000-app metadata catalog is bundled into the Worker. Source configuration is `wrangler.jsonc`; Vite writes the deployable Worker configuration to `dist/borrow_feature_engine/wrangler.json` and Wrangler discovers it through `.wrangler/deploy/config.json`.
+This deploys one Worker plus static assets. **The deployed app needs no local server, relay, container, or running laptop.** The incrementally growing metadata catalog is bundled into the Worker. Source configuration is `wrangler.jsonc`; Vite writes the deployable Worker configuration to `dist/borrow_feature_engine/wrangler.json` and Wrangler discovers it through `.wrangler/deploy/config.json`.
 
 The configured Jev route is OpenRouter (`https://openrouter.ai/api/v1/systemone`), matching the original 10K project's credential. Direct TypeSafe keys are supported with `JEV_BASE_URL=https://api.typesafe.ai/v1`. All provider calls stay server-side. `JEV_API_KEY` must be uploaded separately; local `.dev.vars` files never configure deployed secrets. Do not publish the entire `dist/` folder as static assets: `dist/client/` is the only public asset directory.
 
@@ -46,7 +46,7 @@ The animation follows actual requests with no artificial delays and no route cha
 
 - React 19 + TypeScript + Vite for the UI; Motion for continuous query and robot transitions, Three.js for the dimensional icon swarm, and [robot-heads](https://github.com/fayazara/robot-heads) for the square pink companion with white LEDs.
 - Cloudflare Worker with static assets; native rate-limit binding; Cache API for generated briefs.
-- 1,000 actual US Apple App Store records and precomputed, excerpt-backed feature annotations. Snapshot date and source URLs travel with every result.
+- 1,080 actual US Apple App Store records and precomputed, excerpt-backed feature annotations. Snapshot date and source URLs travel with every result.
 - Explicit feature selections skip inference. Jev evaluates a small shortlist for each feature using app context, with independent winners and no forced app diversity. Custom tags require feature-specific publisher evidence before context can influence ranking. Automatic feature inference remains available to API clients that omit selections. No live Apple request is needed during matching.
 - Long briefs use detailed feature-specific implementation templates, tailored to the project context and stack. Jev is a decision model, not a prose generator. This keeps build kits instant, predictable and inexpensive; the UI discloses template generation.
 - Supabase handles Google/GitHub accounts and durable search allowances. Saved projects remain browser-local, separated by account; multi-device project sync is not implemented.
