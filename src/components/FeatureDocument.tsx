@@ -78,6 +78,7 @@ type PreviewProps = {
   onRetry: () => void;
   onToast?: (message: string) => void;
   onUpgrade: () => void;
+  onAfterClose: () => void;
 };
 
 function PreviewWindow({ match, brief, loading, error, onClose, onRetry, onToast, onUpgrade }: PreviewProps & { match: FeatureMatch }) {
@@ -199,7 +200,7 @@ function PreviewWindow({ match, brief, loading, error, onClose, onRetry, onToast
 
 export function FeatureDocument(props: PreviewProps) {
   return createPortal(
-    <AnimatePresence>{props.match && <PreviewWindow key={props.match.id} {...props} match={props.match} />}</AnimatePresence>,
+    <AnimatePresence onExitComplete={props.onAfterClose}>{props.match && <PreviewWindow key={props.match.id} {...props} match={props.match} />}</AnimatePresence>,
     document.body,
   );
 }
