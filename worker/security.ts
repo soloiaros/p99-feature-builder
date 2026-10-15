@@ -12,7 +12,7 @@ export function textField(value: unknown, name: string, max: number, fallback?: 
   if (typeof value !== 'string' || value.trim().length === 0 || value.length > max) throw new ApiError(422, `${name} must contain 1–${max} characters.`);
   return value.trim().replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
 }
-export async function limitedText(body: ReadableStream<Uint8Array> | null, limit: number): Promise<string> {
+export async function limitedText(body: ReadableStream<Uint8Array> | null, limit: number, overflow: 'reject' | 'truncate' = 'reject'): Promise<string> {
   if (!body) return '';
   const reader = body.getReader();
   const decoder = new TextDecoder();
@@ -23,7 +23,15 @@ export async function limitedText(body: ReadableStream<Uint8Array> | null, limit
       const chunk = await reader.read();
       if (chunk.done) break;
       size += chunk.value.byteLength;
-      if (size > limit) { await reader.cancel(); throw new ApiError(413, 'The supplied content is too large.'); }
+      if (size > limit) {
+        if (overflow === 'reject') { await reader.cancel(); throw new ApiError(413, 'The request is too large.'); }
+        // External pages can contain megabytes of scripts. Keep a bounded prefix,
+        // cancel the rest and use the readable context already received.
+        const remaining = limit - (size - chunk.value.byteLength);
+        result += decoder.decode(chunk.value.subarray(0, remaining), { stream: true });
+        await reader.cancel();
+        return result + decoder.decode();
+      }
       result += decoder.decode(chunk.value, { stream: true });
     }
     return result + decoder.decode();
@@ -110,8 +118,12 @@ function decodeEntities(text: string): string {
 }
 export function pageText(html: string): { title: string; description: string } {
   const title = decodeEntities(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.replace(/<[^>]*>/g, ' ') ?? '').replace(/\s+/g, ' ').trim().slice(0, 100);
-  const clean = html.replace(/<(script|style|noscript|svg|nav|footer|header)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ').replace(/<!--[\s\S]*?-->/g, ' ').replace(/<[^>]*>/g, ' ');
-  return { title, description: decodeEntities(clean).replace(/\s+/g, ' ').trim().slice(0, 10000) };
+  const metadata = [...html.matchAll(/<meta\b[^>]*>/gi)].flatMap(([tag]) => {
+    const attributes = Object.fromEntries([...tag.matchAll(/([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g)].map((match) => [match[1].toLowerCase(), match[2] ?? match[3]]));
+    return /^(description|og:description|twitter:description)$/i.test(attributes.name || attributes.property || '') ? [attributes.content || ''] : [];
+  }).join(' ');
+  const clean = html.replace(/<(script|style|noscript|svg|nav|footer|header)\b[^>]*>[\s\S]*?(?:<\/\1>|$)/gi, ' ').replace(/<!--[\s\S]*?-->/g, ' ').replace(/<[^>]*>/g, ' ');
+  return { title, description: decodeEntities(`${metadata} ${clean}`).replace(/\s+/g, ' ').trim().slice(0, 10000) };
 }
 export async function readLandingPage(input: string, fetcher: typeof fetch = fetch): Promise<{ title: string; description: string; sourceUrl: string }> {
   const url = validatePublicUrl(input);
@@ -127,7 +139,7 @@ export async function readLandingPage(input: string, fetcher: typeof fetch = fet
   if (!response.ok) throw new ApiError(422, 'That website did not allow us to read it. Paste a description instead.');
   const type = response.headers.get('content-type')?.toLowerCase() ?? '';
   if (!type.includes('text/html') && !type.includes('text/plain')) throw new ApiError(422, 'Use a public HTML landing page or describe your app.');
-  const content = await limitedText(response.body, 700000);
+  const content = await limitedText(response.body, 1_000_000, 'truncate');
   const extracted = type.includes('text/html') ? pageText(content) : { title: '', description: content.slice(0, 10000) };
   if (extracted.description.length < 30) throw new ApiError(422, 'This page has too little readable text. Describe your app instead.');
   return { ...extracted, sourceUrl: url.href };
