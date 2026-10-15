@@ -18,6 +18,18 @@ describe('server account and usage boundaries', () => {
     expect(next.storage.getItem('p99-auth')).toBe(session);
     next.storage.removeItem('p99-auth'); expect(next.storage.getItem('p99-auth')).toBeNull();
   });
+  it('bounds attacker-supplied cookie chunk counts', () => {
+    const headers = new Headers();
+    const jar = cookieJar(new Request(origin, { headers: { cookie: 'p99-auth-count=Infinity' } }), headers);
+    expect(jar.storage.getItem('p99-auth')).toBeNull();
+    jar.storage.setItem('p99-auth', 'new session');
+    expect(headers.getSetCookie()).toHaveLength(2);
+  });
+  it('keeps unavailable OAuth providers disabled', async () => {
+    const response = await handleRequest(new Request(`${origin}/api/auth/start?provider=google`), env, (async () => Response.json({ external: { google: false, github: true } })) as typeof fetch);
+    expect(response.status).toBe(503);
+    expect(response.headers.get('location')).toBeNull();
+  });
   it('rejects tampered and expired grants and canonicalizes object key order', async () => {
     const grant = await signGrant({ kind: 'search', exp: Date.now() + 10000 }, env);
     expect((await verifyGrant(grant, env))?.kind).toBe('search');
@@ -29,6 +41,7 @@ describe('server account and usage boundaries', () => {
     let used = false;
     const fetcher = (async (url: string | Request, init?: RequestInit) => {
       const address = String(url);
+      if (address.includes('/auth/v1/settings')) return Response.json({ external: { google: true, github: true } });
       if (address.includes('/rpc/reserve_search')) { if (used) return Response.json(null); used = true; return Response.json('reservation-1'); }
       if (address.includes('/search_usage')) return new Response(null, { headers: { 'content-range': `0-0/${used ? 1 : 0}` } });
       throw new Error(`Unexpected network call ${address} ${init?.method}`);
@@ -48,7 +61,7 @@ describe('server account and usage boundaries', () => {
   });
   it('builds PKCE OAuth redirects for the two allowed providers without exposing a session', async () => {
     for (const provider of ['google', 'github']) {
-      const response = await handleRequest(new Request(`${origin}/api/auth/start?provider=${provider}`), env);
+      const response = await handleRequest(new Request(`${origin}/api/auth/start?provider=${provider}`), env, (async () => Response.json({ external: { google: true, github: true } })) as typeof fetch);
       expect(response.status).toBe(302);
       const target = new URL(response.headers.get('location')!);
       expect(target.origin).toBe(env.SUPABASE_URL);

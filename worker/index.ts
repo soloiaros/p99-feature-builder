@@ -1,5 +1,5 @@
 import { createCheckout, fulfillCheckout, processStripeEvent, verifyStripeEvent } from './billing';
-import { accountContext, accountsConfigured, accountState, fingerprint, reserveSearch, releaseSearch, signGrant, verifyGrant, type AccountContext } from './accounts';
+import { accountContext, accountsConfigured, accountState, availableProviders, fingerprint, reserveSearch, releaseSearch, signGrant, verifyGrant, type AccountContext } from './accounts';
 import type { CatalogResponse, HealthResponse } from '../src/shared/types';
 import { appById, apps, capturedAt, createMatch, enrichedCount, galleryApps, shortlist } from './catalog';
 import { cachedBrief } from './brief';
@@ -53,17 +53,18 @@ export async function handleRequest(request: Request, env: Env, fetcher: typeof 
         if (!/^cs_[a-zA-Z0-9_]{1,220}$/.test(body.sessionId)) throw new ApiError(422, 'Invalid checkout reference.');
         await fulfillCheckout(body.sessionId, env, fetcher, context.user.id);
       }
-      return reply(await accountState(await accountContext(request, env, sessionHeaders, fetcher), env));
+      return reply(await accountState(await accountContext(request, env, sessionHeaders, fetcher), env, fetcher));
     }
     if (url.pathname === '/api/account' && request.method === 'GET') {
-      if (!accountsConfigured(env)) return reply({ configured: false, user: null, premium: false, expiresAt: null, remaining: 1, limit: 1, checkoutEnabled: false, priceLabel: env.PREMIUM_PRICE_LABEL || '$9' });
-      return reply(await accountState(await accountContext(request, env, sessionHeaders, fetcher), env));
+      if (!accountsConfigured(env)) return reply({ providers: [], configured: false, user: null, premium: false, expiresAt: null, remaining: 1, limit: 1, checkoutEnabled: false, priceLabel: env.PREMIUM_PRICE_LABEL || '$9' });
+      return reply(await accountState(await accountContext(request, env, sessionHeaders, fetcher), env, fetcher));
     }
     if (url.pathname.startsWith('/api/auth/')) {
       context = await accountContext(request, env, sessionHeaders, fetcher);
       if (url.pathname === '/api/auth/start' && request.method === 'GET') {
         const provider = url.searchParams.get('provider');
         if (provider !== 'google' && provider !== 'github') throw new ApiError(422, 'Choose Google or GitHub.');
+        if (!(await availableProviders(env, fetcher)).includes(provider)) throw new ApiError(503, 'This sign-in option is being set up. Please try again shortly.');
         const { data, error } = await context.client.auth.signInWithOAuth({ provider, options: { redirectTo: `${url.origin}/api/auth/callback`, skipBrowserRedirect: true } });
         if (error || !data.url) throw new ApiError(503, 'Sign-in could not start. Try again.');
         sessionHeaders.set('location', data.url); sessionHeaders.set('cache-control', 'no-store');

@@ -132,6 +132,7 @@ export interface HealthResponse {
 }
 
 export interface AccountState {
+  providers: ('google' | 'github')[];
   configured: boolean; user: { id: string; email: string } | null;
   premium: boolean; expiresAt: string | null; remaining: number; limit: number;
   checkoutEnabled: boolean; priceLabel: string;

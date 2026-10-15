@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
 import type { Env } from './jev';
-import { ApiError } from './security';
+import { ApiError, limitedText } from './security';
 
 import type { AccountState } from '../src/shared/types';
 export function accountsConfigured(env: Env) { return Boolean(env.SUPABASE_URL && env.SUPABASE_ANON_KEY && env.SUPABASE_SERVICE_ROLE_KEY); }
@@ -10,6 +10,7 @@ export function adminClient(env: Env, fetcher: typeof fetch = fetch) {
 export function cookieJar(request: Request, headers: Headers) {
   const values = new Map((request.headers.get('cookie') || '').split(';').map(item => { const index = item.indexOf('='); return [item.slice(0, index).trim(), item.slice(index + 1)] as const; }));
   const secure = new URL(request.url).protocol === 'https:' ? '; Secure' : '';
+  const chunkCount = (key: string) => { const count = Number(values.get(`${key}-count`)); return Number.isInteger(count) && count > 0 && count <= 8 ? count : 0; };
   const set = (name: string, value: string, age: number) => {
     values.set(name, value);
     headers.append('set-cookie', `${name}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${age}${secure}`);
@@ -18,19 +19,19 @@ export function cookieJar(request: Request, headers: Headers) {
     get: (name: string) => values.get(name), set,
     storage: {
       getItem: (key: string) => {
-        try { const count = Number(values.get(`${key}-count`) || 0); if (!count || count > 8) return null;
+        try { const count = chunkCount(key); if (!count || count > 8) return null;
           return decodeURIComponent(Array.from({ length: count }, (_, i) => values.get(`${key}-${i}`) || '').join(''));
         } catch { return null; }
       },
       setItem: (key: string, value: string) => {
         const encoded = encodeURIComponent(value); const count = Math.ceil(encoded.length / 3000);
         if (count > 8) throw new ApiError(503, 'Your session could not be saved. Please try again.');
-        const old = Number(values.get(`${key}-count`) || 0);
+        const old = chunkCount(key);
         const age = key.includes('code-verifier') ? 600 : 60 * 60 * 24 * 30;
         set(`${key}-count`, String(count), age);
         for (let i = 0; i < Math.max(count, old); i++) set(`${key}-${i}`, encoded.slice(i * 3000, (i + 1) * 3000), i < count ? age : 0);
       },
-      removeItem: (key: string) => { const count = Math.min(Number(values.get(`${key}-count`) || 0), 8); for (let i = 0; i < count; i++) set(`${key}-${i}`, '', 0); set(`${key}-count`, '', 0); },
+      removeItem: (key: string) => { const count = chunkCount(key); for (let i = 0; i < count; i++) set(`${key}-${i}`, '', 0); set(`${key}-count`, '', 0); },
     },
   };
 }
@@ -81,10 +82,16 @@ export async function accountContext(request: Request, env: Env, headers: Header
   const limit = user ? Number.isSafeInteger(configuredLimit) && configuredLimit > 0 ? configuredLimit : premium ? 100 : 5 : 1;
   return { client, admin, user, subject: user ? `user:${user.id}` : `guest:${guest.id}`, premium, expiresAt, period, limit };
 }
-export async function accountState(context: AccountContext, env: Env): Promise<AccountState> {
+export async function availableProviders(env: Env, fetcher: typeof fetch = fetch): Promise<('google' | 'github')[]> {
+  const response = await fetcher(`${env.SUPABASE_URL}/auth/v1/settings`, { headers: { apikey: env.SUPABASE_ANON_KEY! }, signal: AbortSignal.timeout(5000) });
+  if (!response.ok) throw new ApiError(503, 'Sign-in options could not be checked. Try again.');
+  const settings = JSON.parse(await limitedText(response.body, 20000));
+  return (['google', 'github'] as const).filter(provider => settings.external?.[provider] === true);
+}
+export async function accountState(context: AccountContext, env: Env, fetcher: typeof fetch = fetch): Promise<AccountState> {
   const { count, error } = await context.admin.from('search_usage').select('id', { count: 'exact', head: true }).eq('subject', context.subject).eq('period', context.period);
   if (error) throw new ApiError(503, 'Your search allowance could not be checked. Try again.');
-  return { configured: true, user: context.user ? { id: context.user.id, email: context.user.email || '' } : null, premium: context.premium, expiresAt: context.expiresAt, remaining: Math.max(0, context.limit - (count || 0)), limit: context.limit, checkoutEnabled: Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_PRICE_ID && env.STRIPE_WEBHOOK_SECRET), priceLabel: env.PREMIUM_PRICE_LABEL || '$9' };
+  return { providers: await availableProviders(env, fetcher), configured: true, user: context.user ? { id: context.user.id, email: context.user.email || '' } : null, premium: context.premium, expiresAt: context.expiresAt, remaining: Math.max(0, context.limit - (count || 0)), limit: context.limit, checkoutEnabled: Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_PRICE_ID && env.STRIPE_WEBHOOK_SECRET), priceLabel: env.PREMIUM_PRICE_LABEL || '$9' };
 }
 export async function reserveSearch(context: AccountContext): Promise<string> {
   const { data, error } = await context.admin.rpc('reserve_search', { p_subject: context.subject, p_period: context.period, p_limit: context.limit });

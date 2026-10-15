@@ -82,8 +82,8 @@ export default function App() {
     catch { setAccountError('Your account could not load. Try again.'); }
   }
   useEffect(() => {
-    void refreshAccount();
     const params = new URLSearchParams(location.search);
+    if (params.get('checkout') !== 'success') void refreshAccount();
     if (params.has('checkout')) { setModal('premium'); if (params.get('checkout') === 'success') void restorePurchase(params.get('session_id') || undefined); history.replaceState(null, '', location.pathname); }
     if (params.has('auth')) {
       try {
@@ -118,7 +118,7 @@ export default function App() {
   }
   async function signOut() {
     setAccountBusy(true);
-    try { await api('auth/logout', {}); resetSearch(); setBriefs({}); setSaved([]); setModal(null); await refreshAccount(); }
+    try { await api('auth/logout', {}); resetSearch(true); setProfile({ name: 'My app', platform: 'Not sure', stack: 'Use existing stack' }); setManifest(''); setBriefs({}); setSaved([]); setModal(null); await refreshAccount(); }
     catch (error) { setAccountError((error as Error).message); }
     finally { setAccountBusy(false); }
   }
@@ -290,7 +290,7 @@ export default function App() {
         {account?.premium ? <><p className="premium-price">Your pass is active</p><p>Access until {new Date(account.expiresAt!).toLocaleDateString()}.</p><button className="primary" onClick={() => setModal(null)}>Keep building <ArrowRight size={16} /></button></> : <><p className="premium-price">{account?.priceLabel || '$9'} <span>for 30 days</span></p><p className="premium-terms">One payment. No automatic renewal.</p><button className="primary" disabled={accountBusy || (Boolean(account?.user) && !account?.checkoutEnabled)} onClick={() => void checkout()}>{accountBusy ? 'Opening…' : account?.user ? 'Get Premium' : 'Sign in to get Premium'}<ArrowRight size={16} /></button>{account?.user && !account.checkoutEnabled && <p>Checkout is being set up. Your free searches are still available.</p>}</>}
         <button className="restore-purchase" disabled={accountBusy} onClick={() => void restorePurchase()}>Restore purchase</button><p className="premium-free">Free accounts keep five searches a month and the complete Markdown brief.</p>{accountError && <p className="error-message" role="alert">{accountError}</p>}
       </div> : modal === 'account' ? <><h2 id="modal-title">{account?.user ? 'Your account' : 'Keep exploring'}</h2>
-        {account?.user ? <><p>{account.user.email}</p><p>{account.remaining} of {account.limit} searches left {account.premium ? 'with your Premium pass' : 'this month'}.</p><button onClick={() => setModal('premium')}>{account.premium ? 'Manage Premium' : 'Explore Premium'}</button><button onClick={signOut} disabled={accountBusy}>Sign out</button></> : <><p>Try one search on us. Sign in to get five searches each month and keep building.</p><div className="auth-options"><button disabled={!account?.configured} onClick={() => signIn('google')}>Continue with Google</button><button disabled={!account?.configured} onClick={() => signIn('github')}>Continue with GitHub</button></div>{account && !account.configured && <p>Sign-in is being set up. Please check back shortly.</p>}</>}
+        {account?.user ? <><p>{account.user.email}</p><p>{account.remaining} of {account.limit} searches left {account.premium ? 'with your Premium pass' : 'this month'}.</p><button onClick={() => setModal('premium')}>{account.premium ? 'Manage Premium' : 'Explore Premium'}</button><button onClick={signOut} disabled={accountBusy}>Sign out</button></> : <><p>Try one search on us. Sign in to get five searches each month and keep building.</p><div className="auth-options"><button disabled={!account?.providers.includes('google')} onClick={() => signIn('google')}>Continue with Google</button><button disabled={!account?.providers.includes('github')} onClick={() => signIn('github')}>Continue with GitHub</button></div>{account && !account.providers.length && <p>Sign-in is being set up. Please check back shortly.</p>}</>}
         {accountError && <p role="alert" className="error-message">{accountError}</p>}{!account && <button onClick={() => void refreshAccount()}>Retry account</button>}
       </> : modal === 'about' ? <><h2 id="modal-title">How we pick</h2><p>You describe your app and pick the features. Jev scores a short list of App Store apps for each feature and keeps one.</p><p>Open a card for the brief written for your stack.</p><details className="about-data"><summary>Where the numbers come from <ChevronDown size={14} /></summary><p>The search covers {catalog?.total.toLocaleString() || '1,000'} US App Store apps. Each match cites the publisher description and the public rating, with the date of that listing.</p><p>We send your description, or the public page you paste, to Jev. You keep saved projects in this browser.</p></details></> : <><h2 id="modal-title">Saved</h2><p>You keep these in this browser.</p><div className="saved-list">{saved.length ? saved.map(item => <button key={item.id} onClick={() => reopen(item)}><span className="saved-icons">{item.matches.slice(0, 3).map(match => <AppIcon key={match.id} app={match.app} />)}</span><span><strong>{item.project.name}</strong><small>{item.matches.length} feature references</small></span><ArrowRight size={16} /></button>) : <p className="empty-saved">No saved projects yet.</p>}</div></>}
     </motion.div></motion.div>}</AnimatePresence>
