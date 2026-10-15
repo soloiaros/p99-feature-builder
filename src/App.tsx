@@ -55,7 +55,7 @@ export default function App() {
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [toast, setToast] = useState('');
-  const [modal, setModal] = useState<'about' | 'saved' | 'account' | null>(null);
+  const [modal, setModal] = useState<'about' | 'saved' | 'account' | 'premium' | null>(null);
   const [account, setAccount] = useState<AccountState | null>(null);
   const [accountBusy, setAccountBusy] = useState(false);
   const [accountError, setAccountError] = useState('');
@@ -84,6 +84,7 @@ export default function App() {
   useEffect(() => {
     void refreshAccount();
     const params = new URLSearchParams(location.search);
+    if (params.has('checkout')) { setModal('premium'); if (params.get('checkout') === 'success') void restorePurchase(params.get('session_id') || undefined); history.replaceState(null, '', location.pathname); }
     if (params.has('auth')) {
       try {
         const draft = JSON.parse(sessionStorage.getItem('p99-signin-draft') || 'null');
@@ -98,6 +99,22 @@ export default function App() {
     try { sessionStorage.setItem('p99-signin-draft', JSON.stringify({ input, features, profile, manifest })); }
     catch { setAccountError('Your draft could not be saved. Copy it before signing in.'); return; }
     location.assign(`/api/auth/start?provider=${provider}`);
+  }
+  async function checkout() {
+    if (!account?.user) { setModal('account'); return; }
+    setAccountBusy(true); setAccountError('');
+    try { const result = await api<{ url: string }>('billing/checkout', {}); location.assign(result.url); }
+    catch (error) { setAccountError((error as Error).message); setAccountBusy(false); }
+  }
+  async function restorePurchase(sessionId?: string) {
+    if (!account?.user && !sessionId) { setModal('account'); return; }
+    setAccountBusy(true); setAccountError('');
+    try {
+      const restored = await api<AccountState>('billing/restore', sessionId ? { sessionId } : {});
+      setAccount(restored); setBriefs({});
+      setToast(restored.premium ? 'Premium is ready. Your integration kits are unlocked.' : 'No active pass yet. If you just paid, try Restore purchase shortly.');
+    } catch (error) { setAccountError((error as Error).message); }
+    finally { setAccountBusy(false); }
   }
   async function signOut() {
     setAccountBusy(true);
@@ -159,7 +176,7 @@ export default function App() {
   async function analyze() {
     if (busy) return;
     if (!account) { setError('Wait for your account to load, then try again.'); void refreshAccount(); return; }
-    if (account.configured && account.remaining === 0) { setModal('account'); return; }
+    if (account.configured && account.remaining === 0) { setModal(account.user ? 'premium' : 'account'); return; }
     if (input.trim().length < 12) { setError('Add a link, or a few sentences about the app.'); inputRef.current?.focus(); return; }
     if (!features.length) { setError('Add at least one feature.'); return; }
     let dependencies: string[];
@@ -227,7 +244,7 @@ export default function App() {
       <RobotCompanion stage={stage} hasInput={!!input.trim()} hasError={!!error || !!briefError} working={briefBusy} paused={overlayOpen || (busy && skipped)} onActivate={() => { if (!busy && !overlayOpen) resetSearch(); }} />
       <header className="site-header" inert={busy || !!modal} aria-hidden={busy}>
         <div className="brand-group"><span className="robot-dock" data-robot-dock aria-hidden="true" /><button className="brand" onClick={() => resetSearch()} aria-label="p99 home">p99</button></div>
-        <nav aria-label="Main navigation"><button className="nav-link" onClick={() => setModal('account')}>{account?.user ? 'Account' : 'Sign in'}</button><button className="nav-link" onClick={() => setModal('saved')}><Bookmark size={15} /> Saved{saved.length > 0 && <span className="count-badge">{saved.length}</span>}</button><button className="icon-button" onClick={() => setModal('about')} aria-label="How p99 works"><CircleHelp size={17} /></button></nav>
+        <nav aria-label="Main navigation"><button className="nav-link premium-link" onClick={() => { setAccountError(''); setModal('premium'); }}>Premium</button><button className="nav-link" onClick={() => setModal('account')}>{account?.user ? 'Account' : 'Sign in'}</button><button className="nav-link" onClick={() => setModal('saved')}><Bookmark size={15} /> Saved{saved.length > 0 && <span className="count-badge">{saved.length}</span>}</button><button className="icon-button" onClick={() => setModal('about')} aria-label="How p99 works"><CircleHelp size={17} /></button></nav>
       </header>
       <main inert={!!modal}>
         <AnimatePresence initial={false}>
@@ -264,10 +281,13 @@ export default function App() {
       <footer className="site-footer" inert={busy || !!modal}><span>p99</span><span>{catalog ? catalog.total.toLocaleString() : '1,000'} apps, US App Store</span></footer>
       {sceneActive && <SearchScene apps={sceneApps} matches={matches} phase={stage === 'results' ? 'settling' : 'searching'} disabled={skipped || !!reducedMotion} runId={runId} onSettled={finishScene} />}
     </div>
-    <FeatureDocument match={documentMatch} brief={documentMatch ? briefs[documentMatch.id] || null : null} loading={briefBusy} error={briefError || null} onClose={closeDocument} onRetry={() => { if (documentMatch) void getBrief(documentMatch); }} onToast={setToast} />
+    <FeatureDocument match={documentMatch} brief={documentMatch ? briefs[documentMatch.id] || null : null} loading={briefBusy} error={briefError || null} onClose={closeDocument} onRetry={() => { if (documentMatch) void getBrief(documentMatch); }} onToast={setToast} onUpgrade={() => { closeDocument(); setModal('premium'); }} />
     <AnimatePresence>{modal && <motion.div className="modal-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setModal(null)}><motion.div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="modal-title" className="modal" initial={{ opacity: 0, scale: .97 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: .97 }} onClick={event => event.stopPropagation()}><button className="icon-button modal-close" aria-label="Close" onClick={() => setModal(null)}><X size={18} /></button>
-      {modal === 'account' ? <><h2 id="modal-title">{account?.user ? 'Your account' : 'Keep exploring'}</h2>
-        {account?.user ? <><p>{account.user.email}</p><p>{account.remaining} of {account.limit} searches left {account.premium ? 'with your Premium pass' : 'this month'}.</p><button onClick={signOut} disabled={accountBusy}>Sign out</button></> : <><p>Try one search on us. Sign in to get five searches each month and keep building.</p><div className="auth-options"><button disabled={!account?.configured} onClick={() => signIn('google')}>Continue with Google</button><button disabled={!account?.configured} onClick={() => signIn('github')}>Continue with GitHub</button></div>{account && !account.configured && <p>Sign-in is being set up. Please check back shortly.</p>}</>}
+      {modal === 'premium' ? <div className="premium-offer"><span className="premium-eyebrow">p99 Premium</span><h2 id="modal-title">A pattern. A plan.<br />Ready for your app.</h2><div className="premium-preview" aria-hidden="true"><span>your-feature.md</span><code># Implementation brief<br /><br />## Your stack & integration map<br />## Data contracts & edge cases<br />## Acceptance criteria</code><span className="premium-preview-files">+ wireframe.svg · flow.mmd · contract.json</span></div><dl className="premium-benefits"><div><dt>Explore</dt><dd>100 searches per 30-day pass</dd></div><div><dt>Build</dt><dd>Tailored Markdown and complete integration kits</dd></div><div><dt>Bring to your agent</dt><dd>Original wireframes, flows, structured requirements and sources</dd></div></dl>
+        {account?.premium ? <><p className="premium-price">Your pass is active</p><p>Access until {new Date(account.expiresAt!).toLocaleDateString()}.</p><button className="primary" onClick={() => setModal(null)}>Keep building <ArrowRight size={16} /></button></> : <><p className="premium-price">{account?.priceLabel || '$9'} <span>for 30 days</span></p><p className="premium-terms">One payment. No automatic renewal.</p><button className="primary" disabled={accountBusy || (Boolean(account?.user) && !account?.checkoutEnabled)} onClick={() => void checkout()}>{accountBusy ? 'Opening…' : account?.user ? 'Get Premium' : 'Sign in to get Premium'}<ArrowRight size={16} /></button>{account?.user && !account.checkoutEnabled && <p>Checkout is being set up. Your free searches are still available.</p>}</>}
+        <button className="restore-purchase" disabled={accountBusy} onClick={() => void restorePurchase()}>Restore purchase</button><p className="premium-free">Free accounts keep five searches a month and the complete Markdown brief.</p>{accountError && <p className="error-message" role="alert">{accountError}</p>}
+      </div> : modal === 'account' ? <><h2 id="modal-title">{account?.user ? 'Your account' : 'Keep exploring'}</h2>
+        {account?.user ? <><p>{account.user.email}</p><p>{account.remaining} of {account.limit} searches left {account.premium ? 'with your Premium pass' : 'this month'}.</p><button onClick={() => setModal('premium')}>{account.premium ? 'Manage Premium' : 'Explore Premium'}</button><button onClick={signOut} disabled={accountBusy}>Sign out</button></> : <><p>Try one search on us. Sign in to get five searches each month and keep building.</p><div className="auth-options"><button disabled={!account?.configured} onClick={() => signIn('google')}>Continue with Google</button><button disabled={!account?.configured} onClick={() => signIn('github')}>Continue with GitHub</button></div>{account && !account.configured && <p>Sign-in is being set up. Please check back shortly.</p>}</>}
         {accountError && <p role="alert" className="error-message">{accountError}</p>}{!account && <button onClick={() => void refreshAccount()}>Retry account</button>}
       </> : modal === 'about' ? <><h2 id="modal-title">How we pick</h2><p>You describe your app and pick the features. Jev scores a short list of App Store apps for each feature and keeps one.</p><p>Open a card for the brief written for your stack.</p><details className="about-data"><summary>Where the numbers come from <ChevronDown size={14} /></summary><p>The search covers {catalog?.total.toLocaleString() || '1,000'} US App Store apps. Each match cites the publisher description and the public rating, with the date of that listing.</p><p>We send your description, or the public page you paste, to Jev. You keep saved projects in this browser.</p></details></> : <><h2 id="modal-title">Saved</h2><p>You keep these in this browser.</p><div className="saved-list">{saved.length ? saved.map(item => <button key={item.id} onClick={() => reopen(item)}><span className="saved-icons">{item.matches.slice(0, 3).map(match => <AppIcon key={match.id} app={match.app} />)}</span><span><strong>{item.project.name}</strong><small>{item.matches.length} feature references</small></span><ArrowRight size={16} /></button>) : <p className="empty-saved">No saved projects yet.</p>}</div></>}
     </motion.div></motion.div>}</AnimatePresence>

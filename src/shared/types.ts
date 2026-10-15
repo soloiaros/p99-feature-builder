@@ -96,6 +96,7 @@ export interface MatchResponse {
 export interface BriefSection { id: string; title: string; content: string }
 export interface BundleFile { name: string; content: string; mimeType: string }
 export interface BriefResponse {
+  premiumRequired?: boolean;
   matchId: string;
   title: string;
   markdown: string;

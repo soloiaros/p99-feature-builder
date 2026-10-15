@@ -77,9 +77,10 @@ type PreviewProps = {
   onClose: () => void;
   onRetry: () => void;
   onToast?: (message: string) => void;
+  onUpgrade: () => void;
 };
 
-function PreviewWindow({ match, brief, loading, error, onClose, onRetry, onToast }: PreviewProps & { match: FeatureMatch }) {
+function PreviewWindow({ match, brief, loading, error, onClose, onRetry, onToast, onUpgrade }: PreviewProps & { match: FeatureMatch }) {
   const reducedMotion = useReducedMotion();
   const windowRef = useRef<HTMLElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -177,7 +178,7 @@ function PreviewWindow({ match, brief, loading, error, onClose, onRetry, onToast
           <div className="document-toolbar-actions">
             <button type="button" onClick={copy} disabled={!brief || loading} title="Copy Markdown" aria-label={copied ? 'Markdown copied' : 'Copy Markdown'}>{copied ? <Check size={15} /> : <Copy size={15} />}</button>
             <button type="button" onClick={() => download('md')} disabled={!brief || loading} title="Download Markdown" aria-label="Download Markdown"><ArrowDownToLine size={16} /></button>
-            <button type="button" className="document-bundle-button" onClick={() => download('zip')} disabled={!brief || loading} title="Download Markdown, wireframe, flow and sources"><Package size={15} /><span>Download files</span></button>
+            <button type="button" className="document-bundle-button" onClick={() => brief?.premiumRequired ? onUpgrade() : download('zip')} disabled={!brief || loading} title="Download Markdown, wireframe, flow and sources"><Package size={15} /><span>{brief?.premiumRequired ? 'Premium kit' : 'Download files'}</span></button>
           </div>
         </header>
         <motion.div className="document-window-body" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reducedMotion ? 0 : 0.18, delay: reducedMotion ? 0 : 0.08 }}>

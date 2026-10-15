@@ -1,3 +1,4 @@
+import { createCheckout, fulfillCheckout, processStripeEvent, verifyStripeEvent } from './billing';
 import { accountContext, accountsConfigured, accountState, fingerprint, reserveSearch, releaseSearch, signGrant, verifyGrant, type AccountContext } from './accounts';
 import type { CatalogResponse, HealthResponse } from '../src/shared/types';
 import { appById, apps, capturedAt, createMatch, enrichedCount, galleryApps, shortlist } from './catalog';
@@ -5,7 +6,7 @@ import { cachedBrief } from './brief';
 import { analyze, matchFeatures } from './engine';
 import { FEATURES } from './features';
 import { providerInfo, type Env } from './jev';
-import { ApiError, parseFeature, parseFeatures, parseProject, readJson, record, textField } from './security';
+import { ApiError, parseFeature, parseFeatures, parseProject, limitedText, readJson, record, textField } from './security';
 
 const securityHeaders = {
   'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'strict-origin-when-cross-origin',
@@ -34,6 +35,25 @@ export async function handleRequest(request: Request, env: Env, fetcher: typeof 
     }
     if (request.method === 'GET' && url.pathname === '/api/catalog') {
       return json({ apps: galleryApps(), total: apps.length, enrichedCount, updatedAt: capturedAt, categories: [...new Set(apps.map((app) => app.primaryGenre))].sort(), features: FEATURES } satisfies CatalogResponse);
+    }
+    if (url.pathname === '/api/billing/webhook' && request.method === 'POST') {
+      if (!accountsConfigured(env)) throw new ApiError(503, 'Accounts are not configured.');
+      const event = await verifyStripeEvent(await limitedText(request.body, 250000), request.headers.get('stripe-signature') || '', env);
+      await processStripeEvent(event, env, fetcher);
+      return reply({ received: true });
+    }
+    if (['/api/billing/checkout', '/api/billing/restore'].includes(url.pathname) && request.method === 'POST') {
+      if (request.headers.get('origin') !== url.origin) throw new ApiError(403, 'Use the app from its own website.');
+      context = await accountContext(request, env, sessionHeaders, fetcher);
+      if (!context.user) throw new ApiError(401, 'Sign in to manage Premium.');
+      if (env.API_RATE_LIMITER && !(await env.API_RATE_LIMITER.limit({ key: `billing:${context.user.id}` })).success) throw new ApiError(429, 'Try again in a minute.');
+      if (url.pathname.endsWith('/checkout')) return reply(await createCheckout(context, url.origin, env, fetcher));
+      const body = await readJson(request);
+      if (typeof body.sessionId === 'string') {
+        if (!/^cs_[a-zA-Z0-9_]{1,220}$/.test(body.sessionId)) throw new ApiError(422, 'Invalid checkout reference.');
+        await fulfillCheckout(body.sessionId, env, fetcher, context.user.id);
+      }
+      return reply(await accountState(await accountContext(request, env, sessionHeaders, fetcher), env));
     }
     if (url.pathname === '/api/account' && request.method === 'GET') {
       if (!accountsConfigured(env)) return reply({ configured: false, user: null, premium: false, expiresAt: null, remaining: 1, limit: 1, checkoutEnabled: false, priceLabel: env.PREMIUM_PRICE_LABEL || '$9' });
@@ -102,7 +122,9 @@ export async function handleRequest(request: Request, env: Env, fetcher: typeof 
     const candidate = shortlist(feature, project.description, apps.length).find((item) => item.app.trackId === app.trackId);
     if (!candidate) throw new ApiError(422, 'This reference has no supporting feature evidence. Choose another match.');
     const match = createMatch(feature, candidate);
-    return reply(await cachedBrief(project, match, url.origin));
+    const brief = await cachedBrief(project, match, url.origin);
+    if (!context?.premium) return reply({ ...brief, wireframeSvg: '', flowMermaid: '', files: brief.files.filter(file => file.name === 'feature-brief.md'), premiumRequired: true });
+    return reply({ ...brief, premiumRequired: false });
   } catch (error) {
     if (error instanceof ApiError) return reply({ error: error.message }, error.status);
     // No provider bodies, input text, credentials or stack traces reach the response or logs.

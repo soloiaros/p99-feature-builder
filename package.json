@@ -25,6 +25,7 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "robot-heads": "^0.3.0",
+    "stripe": "^23.0.0",
     "three": "^0.186.1"
   },
   "devDependencies": {

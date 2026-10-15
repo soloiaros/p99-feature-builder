@@ -41,10 +41,11 @@ describe('end-to-end API without a provider key', () => {
     expect(brief.markdown.length).toBeGreaterThan(9000);
     expect(brief.markdown).toContain('SwiftUI');
     expect(brief.markdown).toContain('idempotency');
-    expect(brief.wireframeSvg).toContain('<svg');
+    expect(brief.wireframeSvg).toBe('');
+    expect(brief.premiumRequired).toBe(true);
     expect(brief.wireframeSvg).not.toContain('<script');
-    expect(brief.flowMermaid).toContain('flowchart TD');
-    expect(brief.files.map((file: { name: string }) => file.name)).toEqual(['feature-brief.md', 'wireframe.svg', 'flow.mmd', 'implementation-contract.json', 'sources.json']);
+    expect(brief.flowMermaid).toBe('');
+    expect(brief.files.map((file: { name: string }) => file.name)).toEqual(['feature-brief.md']);
     const repeated = await (await handleRequest(post('/api/brief', request), {})).json() as BriefResponse;
     expect(repeated.cached).toBe(true);
   });
@@ -62,7 +63,7 @@ describe('end-to-end API without a provider key', () => {
     const forged = { ...match, reason: 'HACKED', evidence: [{ statement: 'HACKED' }], stats: [{ value: '$999m' }], app: { ...match.app, sources: [{ label: 'Bad source', url: 'http://localhost:1234', accessedAt: '2026' }] } };
     const brief = await (await handleRequest(post('/api/brief', { project: analysis.project, match: forged }), {})).json() as BriefResponse;
     expect(brief.markdown).not.toContain('HACKED');
-    expect(brief.files.find((file: { name: string }) => file.name === 'sources.json')!.content).not.toContain('$999m');
+    expect(JSON.stringify(brief)).not.toContain('$999m');
     expect((await handleRequest(post('/api/brief', { project: analysis.project, match: { ...match, app: { id: '999999999999' } } }), {})).status).toBe(422);
   });
   it('invalidates cached briefs when server-side evidence changes for the same app and feature', async () => {
