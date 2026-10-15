@@ -15,6 +15,20 @@ function request(features: unknown, description = input) {
 }
 
 describe('explicit feature selection', () => {
+  it('accepts a few words with selected features and no technical profile', async () => {
+    const response = await handleRequest(request([widgets], 'habit app'), {});
+    expect(response.status).toBe(200);
+    const analysis = await response.json() as AnalyzeResponse;
+    expect(analysis.project.description).toBe('habit app');
+    expect(analysis.project.stack).toBe('Use existing stack');
+    expect(analysis.features).toEqual([widgets]);
+    const matched = await matchFeatures(analysis.project, analysis.features, {});
+    expect(matched.matches.map(item => item.feature.id)).toContain('widgets');
+    const blankStack = await analyze({ input: 'habit app', features: [widgets], profile: { stack: '' } }, {});
+    expect(blankStack.project.stack).toBe('Use existing stack');
+    expect((await handleRequest(request([widgets], '  '), {})).status).toBe(422);
+  });
+
   it('preserves selected ids, names, descriptions and order without inferring replacements', async () => {
     const fetcher = vi.fn() as unknown as typeof fetch;
     const features = [customWidgets, widgets];

@@ -97,7 +97,7 @@ export async function handleRequest(request: Request, env: Env, fetcher: typeof 
     const body = await readJson(request);
     if (accountsConfigured(env)) context = await accountContext(request, env, sessionHeaders, fetcher);
     if (url.pathname === '/api/analyze') {
-      if (typeof body.input !== 'string' || body.input.trim().length < 12) throw new ApiError(422, 'Add a little more detail about your app, or paste a full HTTPS URL.');
+      if (typeof body.input !== 'string' || body.input.trim().length < 3) throw new ApiError(422, 'Add a little more detail about your app, or paste a full HTTPS URL.');
       const reservation = context ? await reserveSearch(context) : null;
       try {
         const analysis = await analyze(body, env, fetcher);

@@ -12,7 +12,7 @@ function preloadCandidates(features: Feature[], description: string) {
 export async function analyze(body: Record<string, unknown>, env: Env, fetcher: typeof fetch = fetch): Promise<AnalyzeResponse> {
   const started = performance.now();
   const input = textField(body.input, 'App description or URL', 6000);
-  if (input.length < 12) throw new Error('input-short');
+  if (input.length < 3) throw new Error('input-short');
   const profile = body.profile === undefined ? {} : record(body.profile);
   // Validate before a URL can trigger network work. Selected tags are user intent, not inference.
   const selected = body.features === undefined ? undefined : parseFeatures(body.features);
@@ -24,7 +24,7 @@ export async function analyze(body: Record<string, unknown>, env: Env, fetcher: 
     input, description,
     name: textField(profile.name, 'Project name', 100, page?.title || 'My app'),
     platform: textField(profile.platform, 'Platform', 80, 'Not sure'),
-    stack: textField(profile.stack, 'Stack', 160, 'Use existing stack'),
+    stack: textField(profile.stack === '' ? undefined : profile.stack, 'Stack', 160, 'Use existing stack'),
     ...(page ? { sourceUrl: page.sourceUrl, technologyHints: page.technologyHints } : {}),
   };
   if (selected) return {
