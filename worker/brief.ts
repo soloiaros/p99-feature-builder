@@ -14,7 +14,8 @@ function stackGuidance(project: Project, feature: Feature): string {
   if (stack.includes('flutter')) return `${shared}\n\nFor Flutter: follow the repository’s existing state-management choice (do not add a second one). Keep immutable feature state and a repository abstraction, dispose subscriptions and controllers, and separate platform adapters from domain rules. Use typed models and explicit serialization versions. Use Semantics, scalable text and reduced-motion preferences. Mock platform channels in unit tests and verify navigation on a real device or emulator.`;
   if (stack.includes('react native') || stack.includes('expo')) return `${shared}\n\nFor React Native: use TypeScript domain models, a focused feature hook or the existing store, and a repository that wraps the current storage layer. Respect AppState transitions and cancel stale requests when screens unmount. Use platform adapters for notification, widget or purchase functionality. If Expo is present, distinguish Expo Go support from capabilities that require a development build. Honor font scaling, accessibilityLabel, safe areas and reduced-motion preferences.`;
   if (stack.includes('android') || stack.includes('kotlin')) return `${shared}\n\nFor Android: follow existing Kotlin, Compose or View conventions, lifecycle-aware state collection, the current Room/network layer, and accessible semantics. Verify process recreation and permission denial; do not introduce a second persistence layer.`;
-  if (!/react|next/.test(stack)) return `${shared}\n\nThe framework is not confirmed. Read dependency manifests and existing feature modules before choosing implementation APIs. Follow the installed framework, version and test tools; do not assume React, SwiftUI or any new library.`;
+  if (/vue|nuxt/.test(stack)) return `${shared}\n\nFor Vue: follow the existing component API and use focused composables for feature behavior. Reuse the current router, store and data-fetching conventions; clean up watchers and subscriptions on unmount. If Nuxt is present, keep server-only credentials and persistence behind server handlers and account for server rendering and hydration. Preserve reactive updates for pending writes, rollback and offline drafts. Use semantic form controls, keyboard navigation and accessible status announcements.`;
+  if (!/react|next/.test(stack)) return `${shared}\n\nConfirm the framework and installed version in the repository. Read dependency manifests and existing feature modules before choosing implementation APIs. Follow the installed framework, version and test tools; do not assume React, SwiftUI or any new library.`;
   return `${shared}\n\nFor React/Web: use typed components with a small reducer or existing query cache for remote state. Abort superseded fetches and represent pending writes explicitly. Use semantic forms and buttons, visible focus, keyboard navigation and live regions for asynchronous outcomes. Keep durable state in the existing backend and scoped local drafts where useful. The deployment must run on the project’s hosted runtime; do not add a production dependency on a localhost process.`;
 }
 
@@ -183,7 +184,7 @@ export function generateBrief(project: Project, match: FeatureMatch): BriefRespo
     edgeCases: definition.edgeCases, acceptanceCriteria: definition.acceptance,
     evidence: match.evidence,
   };
-  const markdown = `# ${safeText(title)}\n\nOriginal implementation brief · template version 2 · data snapshot ${capturedAt.slice(0, 10)}\n\n${sections.map((section) => `## ${section.title}\n\n${section.content}`).join('\n\n')}\n\n## Sources\n\n${sourceSection}\n\nSupporting files: wireframe.svg (original concept), flow.mmd (Mermaid source), sources.json (provenance), implementation-contract.json (structured requirements).\n`;
+  const markdown = `# ${safeText(title)}\n\nOriginal implementation brief · template version 5 · data snapshot ${capturedAt.slice(0, 10)}\n\n${sections.map((section) => `## ${section.title}\n\n${section.content}`).join('\n\n')}\n\n## Sources\n\n${sourceSection}\n\nSupporting files: wireframe.svg (original concept), flow.mmd (Mermaid source), sources.json (provenance), implementation-contract.json (structured requirements).\n`;
   const wireframeSvg = generateWireframe(project, feature);
   const flowMermaid = generateFlow(feature);
   return {
@@ -203,7 +204,7 @@ export function generateBrief(project: Project, match: FeatureMatch): BriefRespo
 const memory = new Map<string, { expires: number; brief: BriefResponse }>();
 export async function cachedBrief(project: Project, match: FeatureMatch, origin: string): Promise<BriefResponse> {
   // Evidence participates in the signature so corrected excerpts cannot reuse stale bundles.
-  const payload = JSON.stringify({ version: 4, project, feature: match.feature, app: match.app.id, evidence: match.evidence, snapshot: capturedAt });
+  const payload = JSON.stringify({ version: 5, project, feature: match.feature, app: match.app.id, evidence: match.evidence, snapshot: capturedAt });
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(payload));
   const hash = Array.from(new Uint8Array(digest), (part) => part.toString(16).padStart(2, '0')).join('');
   const cached = memory.get(hash);
