@@ -230,10 +230,6 @@ svg { flex-shrink: 0; }
 .premium-link { color: #6e4a60; background: linear-gradient(180deg, #fff9fc, #f4e9f0); }
 .premium-eyebrow { color: #825e73; font: 12px var(--fine); }
 .premium-offer h2 { margin-top: 16px; font-size: 34px; line-height: 1.12; letter-spacing: -.04em; }
-.premium-preview { margin: 28px 0; overflow: hidden; border: 1px solid #e2dce1; border-radius: 12px; background: #fff; box-shadow: 0 10px 24px #38233608; transform: rotate(-1deg); }
-.premium-preview > span { display: block; padding: 10px 16px; border-bottom: 1px solid #eee8ec; color: #776c74; background: #faf7f9; font: 11px var(--fine); }
-.premium-preview code { display: block; padding: 20px 18px; font: 12px/1.9 var(--fine); color: #6d5364; }
-.premium-preview .premium-preview-files { border: 0; border-top: 1px solid #eee8ec; font-size: 10px; }
 .premium-benefits { margin: 26px 0; }
 .premium-benefits > div { display: grid; grid-template-columns: 105px 1fr; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 13px; line-height: 1.6; }
 .premium-benefits dt { color: #767179; }

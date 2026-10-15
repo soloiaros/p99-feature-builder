@@ -25,3 +25,12 @@ One persistent square robot has a pink shell and white LED screen pixels. It res
 ## Verification responsibilities
 
 Integrated browser checks cover desktop and 390px mobile, scene-to-DOM alignment, keyboard operation, feature refinement, brief/download/save flows, and the live Cloudflare deployment. An independent reviewer rated the robot restyle 8/10, then verified the contrast and hierarchy fixes with no remaining material visual blocker. See VERIFICATION.md for measured results and current screenshots.
+
+
+## 15 October: build brief workspace and Premium
+
+The existing quiet workbench and pink companion remain. A single pale lilac input surface now contains both required inputs, visible platform/stack fields, optional integration details and the submit action. Numbered required labels establish the sequence; only the extra app-details section is labeled optional. The headline now explains tailoring to the user's codebase. Repeated introductory guidance was consolidated into one sentence and short field labels.
+
+The document window retains its existing physical transition but displays literal monospace Markdown source. The complete source remains readable, copyable and downloadable for free. The Premium offer shows the kit contents, one-time 30-day price, search allowance and restore action together. Existing robot/search motion is preserved; the optional detail disclosure uses height/opacity, with no new decorative motion.
+
+Three self-review passes (no numeric score or independent agent review) checked the desktop form, source viewer, and Premium entry point. The review caught a focus conflict when opening Premium from an exiting document; the handoff now waits for document exit before opening the next dialog. Guest allowance copy now explicitly says when the trial is used. A redundant decorative document mockup was removed from the Premium dialog so pricing and the primary action fit in the initial desktop view. Mobile/200% visual checks remain pending because the available browser viewport override did not take effect. Screenshots and verification details are in VERIFICATION.md.
