@@ -19,6 +19,8 @@ it('carries owner constraints and typed requirements into the complete kit', asy
   const brief = generateBrief(project, matches.matches[0]);
   expect(brief.markdown).toContain('Use existing entries table');
   expect(brief.markdown).toContain('vue@^3.5.0');
+  expect(brief.markdown).not.toContain('For React/Web:');
+  expect(generateBrief({ ...project, platform: 'iOS', stack: 'Use existing stack' }, matches.matches[0]).markdown).not.toContain('For SwiftUI:');
   const contract = JSON.parse(brief.files.find(file => file.name === 'implementation-contract.json')!.content);
   expect(contract.acceptanceCriteria.length).toBeGreaterThan(0);
   expect(contract.project.constraints).toContain('/journal');
