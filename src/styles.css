@@ -245,3 +245,51 @@ svg { flex-shrink: 0; }
 .restore-purchase { display: flex; margin: 14px auto 0; border: 0; box-shadow: none; background: none; text-decoration: underline; text-underline-offset: 3px; font-size: 12px; }
 .modal .premium-free { font-size: 11px; text-align: center; }
 @media (max-width: 600px) { .site-header nav { gap: 5px; } .site-header .nav-link { padding: 8px 10px; font-size: 11px; } .site-header .nav-link svg, .count-badge { display: none; } .premium-benefits > div { grid-template-columns: 85px 1fr; gap: 12px; } }
+/* One working surface makes context, feature selection and the submit action belong together. */
+.home { padding-top: 42px; }
+.hero { max-width: 840px; }
+.hero h1 { font-size: clamp(38px, 4.4vw, 60px); }
+.hero-description { max-width: 49em; margin-top: 20px; }
+.search-form { max-width: 760px; margin-top: 38px; padding: 28px 30px 22px; border: 1px solid #e2dfe4; border-radius: 26px; background: #f5f3f6; box-shadow: 0 12px 42px -26px #36243130, inset 0 1px #fff; }
+.builder-heading { margin-bottom: 28px; }
+.builder-heading h2 { font-size: 20px; font-weight: 550; letter-spacing: -.025em; }
+.builder-heading > span { display: block; margin-top: 7px; color: #747078; font-size: 13px; }
+.field-label, .fp-label-row label { color: #454049; font-weight: 550; }
+.required-label { display: inline-block; margin-left: 7px; color: #7d6875; font-size: 11px; font-weight: 400; }
+.search-form .search-box, .search-form .fp-field { border-radius: 14px; background: #fff; box-shadow: 0 0 0 1px #e7e2e7; }
+.search-form .search-box:focus-within, .search-form .fp-field:focus-within { box-shadow: 0 0 0 2px #c7a9bd; }
+.search-form .search-box { padding: 16px 18px; }
+.search-form .search-box textarea { height: 66px; font-size: 15px; }
+.search-form .fp-field { min-height: 60px; padding: 10px 15px; }
+.search-form .fp-hint { font: 12px/1.6 'DM Sans', sans-serif; }
+.build-context-heading { padding-top: 23px; margin-top: 16px; border-top: 1px solid #e2dce3; }
+.build-context-heading h3 { font-size: 14px; font-weight: 550; }
+.build-context-heading p { margin-top: 6px; color: #777079; font-size: 12px; line-height: 1.6; }
+.search-form .profile-fields { grid-template-columns: 1fr 1fr 1.3fr; gap: 14px; }
+.search-form .profile-fields label { padding: 14px 1px 4px; }
+.profile-fields .context-wide { grid-column: 1 / -1; }
+.profile-fields textarea { display: block; width: 100%; min-height: 92px; resize: vertical; padding: 12px; border: 1px solid #e3dde5; border-radius: 10px; font: 13px/1.6 'DM Sans', sans-serif; background: #fff; color: #4a454e; }
+.profile-fields label > span { color: #817483; font-size: 11px; }
+.context-toggle { display: flex; width: 100%; justify-content: flex-start; padding: 13px 0; margin-top: 6px; border: 0; border-radius: 0; box-shadow: none; background: transparent; font-size: 12px; }
+.context-toggle:hover:not(:disabled) { box-shadow: none; }
+.context-toggle > span { margin-left: auto; color: #827984; font-size: 11px; }
+.context-toggle[aria-expanded='true'] > svg:last-child { transform: rotate(180deg); }
+.search-form .search-actions { border-top: 1px solid #e2dce3; padding-top: 20px; margin-top: 13px; }
+.allowance-note { color: #706874; font-size: 12px; line-height: 1.6; }
+.search-form .search-footnote { margin-top: 20px; font: 11px/1.6 'DM Sans', sans-serif; color: #817885; }
+@media (max-width: 600px) {
+  .home { padding: 30px 16px 48px; }
+  .hero h1 { font-size: 40px; }
+  .hero-description { font-size: 12px; max-width: 30em; }
+  .search-form { margin-top: 28px; padding: 22px 17px 18px; border-radius: 20px; }
+  .builder-heading { margin-bottom: 24px; }
+  .builder-heading h2 { font-size: 19px; }
+  .search-form .profile-fields { grid-template-columns: 1fr 1fr; }
+  .search-form .profile-fields label:nth-child(3) { grid-column: 1 / -1; }
+  .search-form .search-actions { flex-direction: column-reverse; gap: 12px; }
+  .search-actions .primary { width: 100%; }
+  .site-header { padding: 0 16px; gap: 12px; }
+  .site-header .robot-dock { display: none; }
+  .site-header nav { gap: 4px; }
+  .site-header .icon-button { width: 32px; min-height: 32px; }
+}

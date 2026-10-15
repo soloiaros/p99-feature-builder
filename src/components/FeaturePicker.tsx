@@ -172,7 +172,7 @@ export function FeaturePicker({ value, onChange, disabled = false }: FeaturePick
   return (
     <section className="feature-picker" aria-labelledby={`${id}-label`} data-disabled={disabled} data-dragging={dragging}>
       <div className="fp-label-row">
-        <label id={`${id}-label`} htmlFor={`${id}-input`}>Features</label>
+        <label id={`${id}-label`} htmlFor={`${id}-input`}>2. Features to add <span className="required-label">Required</span></label>
         <span id={`${id}-count`} aria-label={`${value.length} of ${MAX_FEATURES} features selected`}>{value.length} / {MAX_FEATURES}</span>
       </div>
       <div ref={dropRef} className={`fp-field${overDrop ? ' fp-drop-active' : ''}`} role="group" aria-labelledby={`${id}-label`}
@@ -191,7 +191,7 @@ export function FeaturePicker({ value, onChange, disabled = false }: FeaturePick
           {draft.trim() && !full && <button className="fp-add" type="button" disabled={disabled} aria-label="Add typed feature" onClick={() => { addDraft(draft); inputRef.current?.focus(); }}><Plus size={15} aria-hidden="true" /></button>}
         </div>
       </div>
-      <p className="fp-hint" id={`${id}-hint`}>Drag a tag up, or type your own.</p>
+      <p className="fp-hint" id={`${id}-hint`}>Choose at least one tag, or type your own.</p>
       <div className="fp-marquee" aria-label="Feature suggestions">
         {ROWS.map((row, rowIndex) => (
           <div className={`fp-lane fp-lane-${rowIndex}`} key={rowIndex} onFocusCapture={focusSuggestion}
