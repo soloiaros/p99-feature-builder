@@ -37,10 +37,29 @@ try {
   const late = await admin.from('premium_purchases').select('*').eq('payment_intent', refundFirst);
   assert.ifError(late.error);
   assert.equal(late.data.length, 0, 'A late checkout must not reinstate a refunded purchase');
-  console.log('PASS: atomic guest allowance, anonymous access denial, 30-day grant, duplicate delivery, refund and out-of-order payment handling.');
+  const purchasedAt = new Date(Date.now() - 2 * 86400000).toISOString();
+  const polarGrant = { p_user: userId, p_session: `polar:sandbox:checkout-${testId}`, p_payment: `polar:sandbox:order-${testId}`, p_purchased_at: purchasedAt };
+  assert((await anon.rpc('grant_premium_order', polarGrant)).error, 'Anonymous clients must not grant paid access');
+  assert.ifError((await admin.rpc('grant_premium_order', polarGrant)).error);
+  const polarFirst = await admin.from('premium_entitlements').select('expires_at').eq('user_id', userId).single();
+  assert.ifError(polarFirst.error);
+  assert.equal(Date.parse(polarFirst.data.expires_at), Date.parse(purchasedAt) + 30 * 86400000, 'Delayed fulfillment must preserve purchase date');
+  assert.ifError((await admin.rpc('grant_premium_order', polarGrant)).error);
+  const polarRepeat = await admin.from('premium_entitlements').select('expires_at').eq('user_id', userId).single();
+  assert.equal(polarRepeat.data.expires_at, polarFirst.data.expires_at, 'Duplicate Polar delivery must not extend access');
+  assert.ifError((await admin.rpc('revoke_premium_payment', { p_payment: polarGrant.p_payment })).error);
+  assert.ifError((await admin.rpc('grant_premium_order', { ...polarGrant, p_session: `${polarGrant.p_session}-expired`, p_payment: `${polarGrant.p_payment}-expired`, p_purchased_at: new Date(Date.now() - 35 * 86400000).toISOString() })).error);
+  const expired = await admin.from('premium_entitlements').select('*').eq('user_id', userId).maybeSingle();
+  assert.ifError(expired.error);
+  assert.equal(expired.data, null, 'Restoring an expired purchase must not issue a fresh pass');
+  assert.ifError((await admin.rpc('grant_premium_order', { ...polarGrant, p_session: `${polarGrant.p_session}-refund-first`, p_payment: refundFirst })).error);
+  const blocked = await admin.from('premium_purchases').select('*').eq('payment_intent', refundFirst);
+  assert.ifError(blocked.error);
+  assert.equal(blocked.data.length, 0, 'Polar refund tombstones must survive delayed payment delivery');
+  console.log('PASS: atomic guest allowance, RLS, duplicate delivery, refunds, original purchase dates, expired restoration and out-of-order Polar payments.');
 } finally {
   if (userId) { const result = await admin.auth.admin.deleteUser(userId); assert.ifError(result.error); }
   assert.ifError((await admin.from('search_usage').delete().eq('subject', subject)).error);
-  assert.ifError((await admin.from('revoked_payments').delete().in('payment_intent', [payment, refundFirst])).error);
+  assert.ifError((await admin.from('revoked_payments').delete().in('payment_intent', [payment, refundFirst, `polar:sandbox:order-${testId}`])).error);
   console.log('Disposable verification records removed.');
 }
