@@ -251,15 +251,14 @@ export default function App() {
       <main inert={!!modal}>
         <AnimatePresence initial={false}>
           {stage === 'home' && <motion.section key="home" className="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: .2 }}>
-            <div className="hero"><h1>Great app features, tailored to your codebase.</h1><p className="hero-description">Paste your app link or a few words. Pick the features you want to add.</p></div>
+            <div className="hero"><h1>Reverse-engineer features from the apps that already won.</h1><p className="hero-description">One app for each feature, plus a brief for your stack.</p></div>
             <form className="search-form" aria-label="Find feature references" onSubmit={event => { event.preventDefault(); void analyze(); }}>
-              <div className="builder-inputs"><label className="field-label" htmlFor="app-context">1. Your app <span className="required-label">Required</span></label>
+              <label className="field-label" htmlFor="app-context">Your app</label>
               <motion.div className="search-box" layoutId="project-query" transition={{ type: 'spring', stiffness: 300, damping: 32 }}>
-                <textarea ref={inputRef} id="app-context" required aria-required="true" value={input} maxLength={6000} onChange={event => { setInput(event.target.value); setError(''); }} placeholder="Paste a public app link, or describe what your app does." onKeyDown={event => { if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) { event.preventDefault(); void analyze(); } }} />
+                <textarea ref={inputRef} id="app-context" required aria-required="true" value={input} maxLength={6000} onChange={event => { setInput(event.target.value); setError(''); }} placeholder="Paste an App Store link, or describe the app." onKeyDown={event => { if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) { event.preventDefault(); void analyze(); } }} />
               </motion.div>
               <FeaturePicker value={features} onChange={next => { setFeatures(next); setError(''); }} />
-              </div>
-              <button type="button" className="context-toggle" aria-expanded={showProfile} aria-controls="extra-context" onClick={() => setShowProfile(value => !value)}><SlidersHorizontal size={14} />App details (optional)<ChevronDown size={13} /></button>
+              <div className="search-actions"><button type="button" className="profile-button" aria-expanded={showProfile} aria-controls="extra-context" onClick={() => setShowProfile(value => !value)}><SlidersHorizontal size={14} />App details (optional)<ChevronDown size={13} /></button><button type="submit" className="primary" formNoValidate={searchLimitReached} disabled={!account || (!searchLimitReached && (input.trim().length < 3 || !features.length))}>{searchLimitReached ? account?.user ? 'View Premium' : 'Sign in to continue' : 'Find the best apps'} <ArrowRight size={17} /></button></div>
               <AnimatePresence>{showProfile && <motion.div id="extra-context" className="profile-fields extra-context" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
                 <label>App name<input value={profile.name} maxLength={100} onChange={event => setProfile({ ...profile, name: event.target.value })} /></label>
                 <label>Platform<select value={profile.platform} onChange={event => setProfile({ ...profile, platform: event.target.value })}><option>Not sure</option><option>iOS</option><option>Android</option><option>Web</option><option>Cross-platform</option></select></label>
@@ -267,8 +266,9 @@ export default function App() {
                 <label className="context-wide">Integration notes<textarea value={profile.integrationNotes || ''} maxLength={2400} onChange={event => setProfile({ ...profile, integrationNotes: event.target.value })} placeholder="Anything the feature should reuse or work around." /></label>
                 <label className="context-wide">package.json<span>Only package names and versions are used. Omit secrets.</span><textarea value={manifest} maxLength={30000} onChange={event => setManifest(event.target.value)} placeholder='{"dependencies": {"react": "^19.0.0"}}' /></label>
               </motion.div>}</AnimatePresence>
-              <div className="search-actions"><span className="allowance-note">{account?.configured ? account.user ? `${account.remaining} searches left` : account.remaining ? 'One free search. No account needed.' : 'Free search used. Sign in to continue.' : 'Explore app patterns and build briefs.'}</span><button type="submit" className="primary" formNoValidate={searchLimitReached} disabled={!account || (!searchLimitReached && (input.trim().length < 3 || !features.length))}>{searchLimitReached ? account?.user ? 'View Premium' : 'Sign in to continue' : 'Find the best apps'} <ArrowRight size={17} /></button></div>
+
               {error && <p className="error-message" role="alert">{error}</p>}
+              <p className="search-footnote">You pick the feature. We look through public App Store listings.</p>
             </form>
           </motion.section>}
         </AnimatePresence>
@@ -287,7 +287,7 @@ export default function App() {
           {mode !== 'jev' && notice && <p className="engine-notice" role="status">{notice}</p>}
         </motion.section>}</AnimatePresence>
       </main>
-      <footer className="site-footer" inert={busy || !!modal}><span>{catalog ? catalog.total.toLocaleString() : '1,000'} apps, US App Store</span></footer>
+      <footer className="site-footer" inert={busy || !!modal}><span>p99</span><span>{catalog ? catalog.total.toLocaleString() : '1,000'} apps, US App Store</span></footer>
       {sceneActive && <SearchScene apps={sceneApps} matches={matches} phase={stage === 'results' ? 'settling' : 'searching'} disabled={skipped || !!reducedMotion} runId={runId} onSettled={finishScene} />}
     </div>
     <FeatureDocument match={documentMatch} brief={documentMatch ? briefs[documentMatch.id] || null : null} loading={briefBusy} error={briefError || null} onClose={closeDocument} onRetry={() => { if (documentMatch) void getBrief(documentMatch); }} onToast={setToast} onUpgrade={() => { premiumAfterDocument.current = true; closeDocument(); }} onAfterClose={() => { if (premiumAfterDocument.current) { premiumAfterDocument.current = false; setModal('premium'); } }} />
