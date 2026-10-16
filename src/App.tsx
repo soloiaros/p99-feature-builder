@@ -32,9 +32,10 @@ function AppIcon({ app, flightId }: { app: Pick<AppSummary, 'id' | 'name' | 'ico
 }
 function Evidence({ match }: { match: FeatureMatch }) {
   return <details className="reference-evidence"><summary>Why this app <ChevronDown size={13} /></summary><div className="evidence-body">
+    <p className="evidence-category">{match.app.category}</p>
     <p>{match.confidenceDetail}</p>
     {match.evidence.map((item, i) => <blockquote key={i}><p>{item.statement}</p><a href={item.sourceUrl} target="_blank" rel="noreferrer">{item.sourceLabel} <ArrowUpRight size={12} /></a><time>{item.asOf}</time></blockquote>)}
-    <div className="evidence-metrics">{match.stats.map(metric => <div key={metric.label}><span>{metric.label}</span><strong>{metric.value}</strong><small>{metric.status}</small></div>)}</div>
+    <div className="evidence-metrics">{match.stats.filter(metric => metric.status !== 'unavailable').map(metric => <div key={metric.label}><span>{metric.label}</span><strong>{metric.value}</strong><small>{metric.status}</small></div>)}</div>
     <p className="evidence-footnote">The rating is the app's public App Store score on the date in the sources.</p>
   </div></details>;
 }
@@ -50,7 +51,6 @@ export default function App() {
   const [showProfile, setShowProfile] = useState(false);
   const [project, setProject] = useState<Project | null>(null);
   const [matches, setMatches] = useState<FeatureMatch[]>([]);
-  const [unmatched, setUnmatched] = useState<Feature[]>([]);
   const [mode, setMode] = useState('');
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
@@ -170,7 +170,7 @@ export default function App() {
   function resetSearch(clear = false) {
     controller.current?.abort(); briefController.current?.abort();
     setBriefBusy(false); setDocumentMatch(null); setSceneActive(false); setStage('home'); setError(''); setBriefError('');
-    if (clear) { setInput(''); setFeatures([]); setProject(null); setMatches([]); setUnmatched([]); }
+    if (clear) { setInput(''); setFeatures([]); setProject(null); setMatches([]); }
     window.scrollTo({ top: 0, behavior: 'instant' });
     requestAnimationFrame(() => inputRef.current?.focus());
   }
@@ -186,7 +186,7 @@ export default function App() {
     controller.current?.abort(); briefController.current?.abort();
     const ctrl = new AbortController(); controller.current = ctrl;
     const started = performance.now();
-    setProject(null); setMatches([]); setUnmatched([]); setCandidates([]); setBriefs({}); setBriefBusy(false); setBriefError(''); setDocumentMatch(null);
+    setProject(null); setMatches([]); setCandidates([]); setBriefs({}); setBriefBusy(false); setBriefError(''); setDocumentMatch(null);
     setStage('analyzing'); setRunId(id => id + 1); setSceneActive(true); setSkipped(false); setError('');
     window.scrollTo({ top: 0, behavior: 'instant' });
     try {
@@ -205,7 +205,7 @@ export default function App() {
         });
       }
       if (ctrl.signal.aborted || controller.current !== ctrl) return;
-      setMatches(result.matches); setUnmatched(result.unmatchedFeatures || analyzed.features.filter(feature => !result.matches.some(match => match.feature.id === feature.id)));
+      setMatches(result.matches);
       setMode(result.mode); setNotice(result.notice); setStage('results'); void refreshAccount();
     } catch (error) {
       if (ctrl.signal.aborted || controller.current !== ctrl) return;
@@ -237,7 +237,7 @@ export default function App() {
     controller.current?.abort(); briefController.current?.abort(); setBriefBusy(false); setBriefError(''); setDocumentMatch(null); setSceneActive(false);
     setProject(item.project); setProfile({ name: item.project.name, platform: item.project.platform, stack: item.project.stack, integrationNotes: item.project.integrationNotes, dependencies: item.project.dependencies }); setManifest(''); setInput(item.project.input);
     const savedFeatures = item.features || item.matches.map(match => match.feature);
-    setFeatures(savedFeatures); setMatches(item.matches); setUnmatched(savedFeatures.filter(feature => !item.matches.some(match => match.feature.id === feature.id)));
+    setFeatures(savedFeatures); setMatches(item.matches);
     setMode(item.mode); setNotice('Saved earlier in this browser. Check the source dates.'); setBriefs({}); setModal(null); setStage('results'); window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
@@ -272,19 +272,17 @@ export default function App() {
             </form>
           </motion.section>}
         </AnimatePresence>
-        {stage !== 'home' && <div className={`query-dock ${busy ? 'query-dimmed' : 'query-resting'}`}><motion.div className="query-card" layoutId="project-query" transition={{ type: 'spring', stiffness: 300, damping: 32 }}><div className="query-top"><span>{project?.name || 'Your app'}</span>{!busy && <button className="text-button" onClick={() => resetSearch()}>Edit search</button>}</div><p className="query-text">{input}</p><div className="query-tags">{features.map(feature => <span key={feature.id}>{feature.name}</span>)}</div></motion.div></div>}
+        {stage !== 'home' && <div className={`query-dock ${busy ? 'query-dimmed' : 'query-resting'}`}><motion.div className="query-card" layoutId="project-query" transition={{ type: 'spring', stiffness: 300, damping: 32 }}><div className="query-top"><span>{project?.name || 'Your app'}</span>{!busy && <button className="text-button" onClick={() => resetSearch()}>Edit search</button>}</div><p className="query-text">{input}</p>{stage !== 'results' && <div className="query-tags">{features.map(feature => <span key={feature.id}>{feature.name}</span>)}</div>}</motion.div></div>}
         {busy && <section className="search-stage" aria-live="polite"><div className="search-status"><p>{stage === 'analyzing' ? 'Reading your app.' : 'Comparing apps for each feature.'}</p><span>One app for each feature.</span><div className="progress-controls"><button onClick={cancel}>Cancel</button>{!skipped && !reducedMotion && <button onClick={() => setSkipped(true)}>Less motion</button>}</div></div></section>}
         <AnimatePresence>{stage === 'results' && <motion.section key="results" className="results" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: .22 }}>
-          <div className="results-heading"><div><h1>The good ones.</h1><p>One app for each feature. Open a card for the brief.</p></div>{matches.length > 0 && <button className="save-button" onClick={saveProject}><Bookmark size={15} /><span>Save</span></button>}</div>
+          <div className="results-heading"><div><h1>The good ones.</h1><p>One app for each feature. Open a card for the brief.</p></div>{matches.length > 0 && <button className="save-button" onClick={saveProject} aria-label="Save"><Bookmark size={15} /><span>Save</span></button>}</div>
           <div className="result-list">{features.map(feature => {
             const match = matches.find(item => item.feature.id === feature.id);
-            if (!match) return <article className="unmatched-row" key={feature.id}><span className="empty-feature-icon"><Plus size={22} /></span><div><h2>{feature.name}</h2><p>No app in this set describes that feature clearly enough to cite.</p></div><button onClick={() => resetSearch()}>Refine</button></article>;
-            const excerpt = match.evidence.find(item => item.kind === 'publisher-description')?.statement;
-            return <article className="reference-card" key={match.id} aria-label={`${feature.name} reference`}><div className="reference-main"><AppIcon app={match.app} flightId={match.id} /><div className="reference-copy"><p className="feature-label">{feature.name}</p><h2><a href={match.app.appStoreUrl} target="_blank" rel="noreferrer">{match.app.name}<ArrowUpRight size={16} /></a></h2><div className="reference-meta">{match.app.rating !== null && <span><Star size={12} fill="currentColor" /> {match.app.rating.toFixed(1)}{match.app.ratingCount !== null && <span className="rating-count"> · {new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(match.app.ratingCount)} ratings</span>}</span>}<span>{match.app.category}</span></div>{excerpt && <p className="reference-excerpt">{excerpt}</p>}</div><DocumentTrigger match={match} onOpen={() => openDocument(match)} isOpen={documentMatch?.id === match.id} /></div><Evidence match={match} /></article>;
+            if (!match) return <article className="unmatched-row" key={feature.id}><span className="empty-feature-icon"><Plus size={22} /></span><div><h2>{feature.name}</h2><p>No match in this catalog.</p></div><button onClick={() => resetSearch()}>Refine</button></article>;
+            return <article className="reference-card" key={match.id} aria-label={`${feature.name} reference`}><div className="reference-main"><AppIcon app={match.app} flightId={match.id} /><div className="reference-copy"><p className="feature-label">{feature.name}</p><h2><a href={match.app.appStoreUrl} target="_blank" rel="noreferrer">{match.app.name}<ArrowUpRight size={16} /></a></h2><div className="reference-meta">{match.app.rating !== null && <span><Star size={12} fill="currentColor" /> {match.app.rating.toFixed(1)}{match.app.ratingCount !== null && <span className="rating-count"> · {new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(match.app.ratingCount)} ratings</span>}</span>}</div></div><DocumentTrigger match={match} onOpen={() => openDocument(match)} isOpen={documentMatch?.id === match.id} /></div><Evidence match={match} /></article>;
           })}</div>
-          {unmatched.length > 0 && matches.length === 0 && <p className="results-note">Try a more common feature name.</p>}
-          <p className="results-note">You can open the public listing and rating for each app. Each source has a date. <button onClick={() => setModal('about')}>How we pick</button></p>
-          {mode !== 'jev' && notice && <p className="engine-notice" role="status">{notice}</p>}
+          <p className="results-note"><button onClick={() => setModal('about')}>How we pick</button></p>
+          {mode !== 'jev' && notice && <details className="search-details"><summary>Search details</summary><p className="engine-notice">{notice}</p></details>}
         </motion.section>}</AnimatePresence>
       </main>
       <footer className="site-footer" inert={busy || !!modal}><span>p99</span><span>{catalog ? catalog.total.toLocaleString() : '1,000'} apps, US App Store</span></footer>

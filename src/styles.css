@@ -94,7 +94,7 @@ svg { flex-shrink: 0; }
 .results-heading h1 + p { max-width: 36em; margin-top: 16px; }
 .save-button { flex-shrink: 0; min-height: 36px; margin-bottom: 4px; padding: 8px 13px; font-size: 13px; }
 .result-list { display: flex; flex-direction: column; gap: 28px; }
-.reference-card { padding: 28px 24px 22px; border: 1px solid #e0e0e0; border-radius: 16px; background: #f6f6f6; box-shadow: 0 27px 16px #00000008, 0 8px 10px #0000000a; }
+.reference-card { padding: 24px 0; border-bottom: 1px solid var(--line); }
 .reference-main { display: grid; grid-template-columns: 64px minmax(0, 1fr) 156px; gap: 24px; align-items: center; }
 .reference-copy { min-width: 0; }
 .feature-label { display: inline-block; margin-bottom: 12px; padding: 5px 9px; border-radius: 12px; background: #2f2e2d; color: #ececec; font-family: var(--fine); font-optical-sizing: auto; font-size: 13px; font-weight: 450; line-height: 1.4; }
@@ -196,7 +196,7 @@ svg { flex-shrink: 0; }
   .results-heading h1 { font-size: 36px; letter-spacing: -.04em; }
   .save-button { width: 36px; min-height: 36px; padding: 8px; }
   .save-button span { display: none; }
-  .reference-card { padding: 22px 18px 18px; border-radius: 16px; }
+  .reference-card { padding: 20px 0; }
   .reference-main { grid-template-columns: 48px minmax(0, 1fr); gap: 14px; align-items: start; }
   .reference-main > .app-icon { width: 48px; height: 48px; border-radius: 12px; margin-top: 2px; }
   .reference-main > .document-trigger { grid-column: 2; justify-self: start; }
@@ -259,4 +259,18 @@ svg { flex-shrink: 0; }
   .profile-fields input, .profile-fields select, .extra-context textarea { font-size: 16px; }
   .premium-benefits > div { grid-template-columns: 1fr; gap: 4px; }
   .modal { max-height: calc(100dvh - 32px); }
+}
+
+/* Keep result summaries short; supporting evidence is available on demand. */
+.query-resting .query-text { -webkit-line-clamp: 1; }
+.results-heading { margin-bottom: 24px; }
+.result-list { gap: 8px; }
+.reference-evidence { margin-top: 12px; }
+.evidence-category { margin-bottom: 10px; }
+.evidence-metrics:empty { display: none; }
+.search-details { margin-top: 16px; font-size: 13px; color: #5b5b5b; }
+.search-details summary { cursor: pointer; }
+@media (max-width: 600px) {
+  .results-heading { margin-bottom: 20px; }
+  .result-list { gap: 4px; }
 }
