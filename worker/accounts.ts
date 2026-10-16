@@ -2,6 +2,7 @@ import { createClient, type SupabaseClient, type User } from '@supabase/supabase
 import type { Env } from './jev';
 import { ApiError, limitedText } from './security';
 
+import { AUTH_PROVIDERS, type AuthProvider } from '../src/shared/auth';
 import type { AccountState } from '../src/shared/types';
 export function accountsConfigured(env: Env) { return Boolean(env.SUPABASE_URL && env.SUPABASE_ANON_KEY && env.SUPABASE_SERVICE_ROLE_KEY); }
 export function adminClient(env: Env, fetcher: typeof fetch = fetch) {
@@ -82,11 +83,11 @@ export async function accountContext(request: Request, env: Env, headers: Header
   const limit = user ? Number.isSafeInteger(configuredLimit) && configuredLimit > 0 ? configuredLimit : premium ? 100 : 5 : 1;
   return { client, admin, user, subject: user ? `user:${user.id}` : `guest:${guest.id}`, premium, expiresAt, period, limit };
 }
-export async function availableProviders(env: Env, fetcher: typeof fetch = fetch): Promise<('google' | 'github')[]> {
+export async function availableProviders(env: Env, fetcher: typeof fetch = fetch): Promise<AuthProvider[]> {
   const response = await fetcher(`${env.SUPABASE_URL}/auth/v1/settings`, { headers: { apikey: env.SUPABASE_ANON_KEY! }, signal: AbortSignal.timeout(5000) });
   if (!response.ok) throw new ApiError(503, 'Sign-in options could not be checked. Try again.');
   const settings = JSON.parse(await limitedText(response.body, 20000));
-  return (['google', 'github'] as const).filter(provider => settings.external?.[provider] === true);
+  return AUTH_PROVIDERS.map(provider => provider.id).filter(provider => settings.external?.[provider] === true);
 }
 export async function accountState(context: AccountContext, env: Env, fetcher: typeof fetch = fetch): Promise<AccountState> {
   const { count, error } = await context.admin.from('search_usage').select('id', { count: 'exact', head: true }).eq('subject', context.subject).eq('period', context.period);
@@ -96,7 +97,7 @@ export async function accountState(context: AccountContext, env: Env, fetcher: t
 export async function reserveSearch(context: AccountContext): Promise<string> {
   const { data, error } = await context.admin.rpc('reserve_search', { p_subject: context.subject, p_period: context.period, p_limit: context.limit });
   if (error) throw new ApiError(503, 'Your search could not be started. Try again.');
-  if (!data) throw new ApiError(context.user ? 429 : 401, context.user ? 'You have used your searches for this period. Explore Premium for more.' : 'Your free search is used. Sign in with Google or GitHub to keep exploring.');
+  if (!data) throw new ApiError(context.user ? 429 : 401, context.user ? 'You have used your searches for this period. Explore Premium for more.' : 'Your free search is used. Sign in to keep exploring.');
   return data as string;
 }
 export async function releaseSearch(context: AccountContext, id: string) {

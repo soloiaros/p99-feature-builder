@@ -1,3 +1,5 @@
+import type { AuthProvider } from './auth';
+
 export type DataStatus = 'verified' | 'estimated' | 'unavailable';
 export type EngineMode = 'jev' | 'local';
 
@@ -132,7 +134,7 @@ export interface HealthResponse {
 }
 
 export interface AccountState {
-  providers: ('google' | 'github')[];
+  providers: AuthProvider[];
   configured: boolean; user: { id: string; email: string } | null;
   premium: boolean; expiresAt: string | null; remaining: number; limit: number;
   checkoutEnabled: boolean; priceLabel: string;

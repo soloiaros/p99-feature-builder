@@ -14,14 +14,23 @@ The application changes are committed locally. Production has not been updated, 
 
 ## Sign-in activation
 
-The current Supabase settings report both requested providers disabled. The p99 UI reflects this instead of sending users into a broken OAuth flow.
+The p99 UI enables each sign-in option only when Supabase reports that provider enabled. Google and GitHub were disabled when the project was provisioned; verify current readiness after changing dashboard settings.
 
 1. Create a Google OAuth **Web application** and a GitHub OAuth app owned by the p99 operator. Use `https://p99.aauburn.com` as the homepage/origin.
 2. In both provider consoles, set the provider callback to `https://byykgulviqoumyedwnmn.supabase.co/auth/v1/callback`.
 3. Save each client ID and secret in this project's Supabase Authentication → Providers page, then enable the provider. Do not put provider secrets in frontend code or chat.
-4. Verify both providers from localhost, including callback, reload, session refresh, sign-out, and switching accounts. Verify the first guest search succeeds and the second requests sign-in.
+4. Verify each enabled provider from localhost, including callback, reload, session refresh, sign-out, and switching accounts. Verify the first guest search succeeds and the second requests sign-in.
 
 The provider callback above differs from the app callback: Supabase receives the provider response, then redirects to p99's `/api/auth/callback` to exchange the PKCE code. Official instructions: [Google](https://supabase.com/docs/guides/auth/social-login/auth-google), [GitHub](https://supabase.com/docs/guides/auth/social-login/auth-github).
+
+### Notion and Twitter
+
+Both use the same Supabase callback: `https://byykgulviqoumyedwnmn.supabase.co/auth/v1/callback`.
+
+- **Notion:** create a **Public integration** in the Notion integrations dashboard, add the callback as a redirect URI, and enable **Read user information including email addresses**. Copy its OAuth client ID and secret into Supabase Authentication → Providers → Notion and enable it.
+- **Twitter:** configure a **Web App** with **OAuth 2.0** in the Twitter developer dashboard. Add the callback, website, terms and privacy URLs, and enable **Request email from users**. Copy the **OAuth 2.0 Client ID and Client Secret** into Supabase's **X / Twitter (OAuth 2.0)** provider and enable it. Do not use the legacy OAuth 1.0a API key/secret. Supabase calls this provider `x`; p99 displays **Twitter**.
+
+Provider instructions: [Notion](https://supabase.com/docs/guides/auth/social-login/auth-notion), [Twitter](https://supabase.com/docs/guides/auth/social-login/auth-twitter). No provider credentials belong in p99's frontend or Worker; Supabase holds them. Verify sign-in and sign-out after activation.
 
 `supabase/config.toml` captures the initial/local configuration. Reconcile dashboard provider changes before any future `supabase config push`; do not overwrite enabled providers with local defaults.
 

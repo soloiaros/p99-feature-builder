@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cookieJar, fingerprint, signGrant, verifyGrant } from '../worker/accounts';
+import { availableProviders, cookieJar, fingerprint, signGrant, verifyGrant } from '../worker/accounts';
 import { handleRequest } from '../worker';
 import type { AnalyzeResponse } from '../src/shared/types';
 
@@ -25,10 +25,17 @@ describe('server account and usage boundaries', () => {
     jar.storage.setItem('p99-auth', 'new session');
     expect(headers.getSetCookie()).toHaveLength(2);
   });
-  it('keeps unavailable OAuth providers disabled', async () => {
-    const response = await handleRequest(new Request(`${origin}/api/auth/start?provider=google`), env, (async () => Response.json({ external: { google: false, github: true } })) as typeof fetch);
+  it.each(['google', 'github', 'notion', 'x'])('keeps unavailable OAuth provider %s disabled', async (provider) => {
+    const response = await handleRequest(new Request(`${origin}/api/auth/start?provider=${provider}`), env, (async () => Response.json({ external: { google: true, github: true, notion: true, x: true, [provider]: false } })) as typeof fetch);
     expect(response.status).toBe(503);
     expect(response.headers.get('location')).toBeNull();
+  });
+  it('exposes only enabled supported providers and uses OAuth 2.0 for Twitter', async () => {
+    const fetcher = (async () => Response.json({ external: { google: false, github: false, notion: true, x: true, twitter: true, discord: true } })) as typeof fetch;
+    expect(await availableProviders(env, fetcher)).toEqual(['notion', 'x']);
+    const legacyOnly = (async () => Response.json({ external: { twitter: true } })) as typeof fetch;
+    expect(await availableProviders(env, legacyOnly)).toEqual([]);
+    expect((await handleRequest(new Request(`${origin}/api/auth/start?provider=twitter`), env, legacyOnly)).status).toBe(422);
   });
   it('rejects tampered and expired grants and canonicalizes object key order', async () => {
     const grant = await signGrant({ kind: 'search', exp: Date.now() + 10000 }, env);
@@ -41,7 +48,7 @@ describe('server account and usage boundaries', () => {
     let used = false;
     const fetcher = (async (url: string | Request, init?: RequestInit) => {
       const address = String(url);
-      if (address.includes('/auth/v1/settings')) return Response.json({ external: { google: true, github: true } });
+      if (address.includes('/auth/v1/settings')) return Response.json({ external: { google: true, github: true, notion: true, x: true } });
       if (address.includes('/rpc/reserve_search')) { if (used) return Response.json(null); used = true; return Response.json('reservation-1'); }
       if (address.includes('/search_usage')) return new Response(null, { headers: { 'content-range': `0-0/${used ? 1 : 0}` } });
       throw new Error(`Unexpected network call ${address} ${init?.method}`);
@@ -59,13 +66,15 @@ describe('server account and usage boundaries', () => {
     expect((await (await handleRequest(new Request(origin + '/api/account', { headers: { cookie } }), env, fetcher)).json() as { remaining: number }).remaining).toBe(0);
     expect((await handleRequest(post('/api/analyze', body, cookie), env, fetcher)).status).toBe(401);
   });
-  it('builds PKCE OAuth redirects for the two allowed providers without exposing a session', async () => {
-    for (const provider of ['google', 'github']) {
-      const response = await handleRequest(new Request(`${origin}/api/auth/start?provider=${provider}`), env, (async () => Response.json({ external: { google: true, github: true } })) as typeof fetch);
+  it('builds PKCE OAuth redirects for all four allowed providers without exposing a session', async () => {
+    for (const provider of ['google', 'github', 'notion', 'x']) {
+      const response = await handleRequest(new Request(`${origin}/api/auth/start?provider=${provider}`), env, (async () => Response.json({ external: { google: true, github: true, notion: true, x: true } })) as typeof fetch);
       expect(response.status).toBe(302);
       const target = new URL(response.headers.get('location')!);
       expect(target.origin).toBe(env.SUPABASE_URL);
       expect(target.searchParams.get('provider')).toBe(provider);
+      expect(target.searchParams.get('redirect_to')).toBe(`${origin}/api/auth/callback`);
+      expect(target.searchParams.has('access_token')).toBe(false);
       expect(target.searchParams.get('code_challenge_method')).toBe('s256');
       expect(response.headers.getSetCookie().some(value => value.includes('code-verifier') && value.includes('HttpOnly'))).toBe(true);
     }

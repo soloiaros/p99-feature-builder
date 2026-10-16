@@ -53,7 +53,7 @@ Run `npm test` for API flow, template exports/cache, realistic feature extractio
 
 ## Accounts and Premium (15 October)
 
-`GET /api/account` returns provider readiness, the current user, plan and remaining allowance. `/api/auth/start?provider=google|github` starts PKCE; `/api/auth/callback` exchanges the code into HttpOnly cookies. `POST /api/auth/logout` signs out the local session. Google/GitHub buttons are enabled only when Supabase reports that provider configured.
+`GET /api/account` returns provider readiness, the current user, plan and remaining allowance. `/api/auth/start?provider=google|github|notion|x` starts PKCE; `/api/auth/callback` exchanges the code into HttpOnly cookies. `POST /api/auth/logout` signs out the local session. Google, GitHub, Notion and Twitter buttons are enabled only when Supabase reports that provider configured. Twitter uses Supabase’s OAuth 2.0 provider ID `x`; the legacy `twitter` provider is not accepted.
 
 Configured deployments reserve one guest search, five monthly free-account searches, or 100 searches per Premium pass in Postgres. `/api/analyze` returns a `searchToken`; `/api/match` requires that token and the same cookies, project and features. Failed analysis releases its reservation. Guest identities are signed browser cookies, not one-per-person guarantees.
 

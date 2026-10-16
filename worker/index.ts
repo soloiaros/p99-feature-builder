@@ -1,5 +1,6 @@
 import { createCheckout, fulfillCheckout, processStripeEvent, verifyStripeEvent } from './billing';
 import { accountContext, accountsConfigured, accountState, availableProviders, fingerprint, reserveSearch, releaseSearch, signGrant, verifyGrant, type AccountContext } from './accounts';
+import { isAuthProvider } from '../src/shared/auth';
 import type { CatalogResponse, HealthResponse } from '../src/shared/types';
 import { appById, apps, capturedAt, createMatch, enrichedCount, galleryApps, shortlist } from './catalog';
 import { cachedBrief } from './brief';
@@ -63,7 +64,7 @@ export async function handleRequest(request: Request, env: Env, fetcher: typeof 
       context = await accountContext(request, env, sessionHeaders, fetcher);
       if (url.pathname === '/api/auth/start' && request.method === 'GET') {
         const provider = url.searchParams.get('provider');
-        if (provider !== 'google' && provider !== 'github') throw new ApiError(422, 'Choose Google or GitHub.');
+        if (!isAuthProvider(provider)) throw new ApiError(422, 'Choose a supported sign-in option.');
         if (!(await availableProviders(env, fetcher)).includes(provider)) throw new ApiError(503, 'This sign-in option is being set up. Please try again shortly.');
         const { data, error } = await context.client.auth.signInWithOAuth({ provider, options: { redirectTo: `${url.origin}/api/auth/callback`, skipBrowserRedirect: true } });
         if (error || !data.url) throw new ApiError(503, 'Sign-in could not start. Try again.');
