@@ -3,6 +3,7 @@ import { AnimatePresence, LayoutGroup, MotionConfig, motion, useReducedMotion } 
 import { ArrowRight, ArrowUpRight, Bookmark, Check, ChevronDown, CircleHelp, Plus, SlidersHorizontal, Star, X } from 'lucide-react';
 import { SearchScene } from './components/SearchScene';
 import { RobotCompanion } from './components/RobotCompanion';
+import { FaviconGaze } from './components/FaviconGaze';
 import { FeaturePicker } from './components/FeaturePicker';
 import { DocumentTrigger, FeatureDocument } from './components/FeatureDocument';
 import { AUTH_PROVIDERS, type AuthProvider } from './shared/auth';
@@ -245,6 +246,7 @@ export default function App() {
   return <MotionConfig reducedMotion="user"><LayoutGroup>
     <div className="app-shell" data-stage={stage}>
       <RobotCompanion stage={stage} hasInput={!!input.trim()} hasError={!!error || !!briefError} working={briefBusy} paused={overlayOpen || (busy && skipped)} onActivate={() => { if (!busy && !overlayOpen) resetSearch(); }} />
+      <FaviconGaze />
       <header className="site-header" inert={busy || !!modal} aria-hidden={busy}>
         <div className="brand-group"><span className="robot-dock" data-robot-dock aria-hidden="true" /><button className="brand" onClick={() => resetSearch()} aria-label="p99 home">p99</button></div>
         <nav aria-label="Main navigation"><button className="nav-link premium-link" onClick={() => { setAccountError(''); setModal('premium'); }}>Premium</button><button className="nav-link" onClick={() => setModal('account')}>{account?.user ? 'Account' : 'Sign in'}</button><button className="nav-link" onClick={() => setModal('saved')}><Bookmark size={15} /> Saved{saved.length > 0 && <span className="count-badge">{saved.length}</span>}</button><button className="icon-button" onClick={() => setModal('about')} aria-label="How p99 works"><CircleHelp size={17} /></button></nav>
